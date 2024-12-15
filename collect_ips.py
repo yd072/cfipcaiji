@@ -1,6 +1,18 @@
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 import re
+import time
+
+# 配置 ChromeDriver 路径
+driver_path = '/path/to/chromedriver'  # 替换为你的 ChromeDriver 路径
+
+# 初始化浏览器
+options = webdriver.ChromeOptions()
+options.add_argument('--headless')  # 无头模式
+options.add_argument('--disable-gpu')
+service = Service(driver_path)
+driver = webdriver.Chrome(service=service, options=options)
 
 # 目标URL列表
 urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz','https://stock.hostmonit.com/CloudFlareYes']
@@ -12,24 +24,21 @@ ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
 with open('ip.txt', 'w') as file:
     for url in urls:
         try:
-            # 设置请求头，避免被反爬虫检测
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36'
-            }
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
+            # 加载网页
+            driver.get(url)
+            time.sleep(5)  # 等待页面加载完成
 
-            # 解析HTML内容
-            soup = BeautifulSoup(response.text, 'html.parser')
+            # 提取页面内容
+            page_source = driver.page_source
 
-            # 调整解析逻辑，根据实际结构修改这里
-            elements = soup.find_all(text=re.compile(ip_pattern))  # 直接搜索包含IP的文本
-            for element in elements:
-                ip_matches = re.findall(ip_pattern, element)
-                for ip in ip_matches:
-                    file.write(ip + '\n')
+            # 使用正则表达式提取IP地址
+            ip_matches = re.findall(ip_pattern, page_source)
+            for ip in ip_matches:
+                file.write(ip + '\n')
 
-        except requests.RequestException as e:
-            print(f"请求失败 {url}: {e}")
+        except Exception as e:
+            print(f"动态抓取失败 {url}: {e}")
 
+# 关闭浏览器
+driver.quit()
 print('IP地址已保存到 ip.txt 文件中。')
