@@ -9,19 +9,24 @@ urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz']
 ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'  # 精确匹配IPv4地址
 
 # 获取IP的国家简称
-def get_ip_region(ip):
+def get_ip_country(ip):
     try:
-        # 通过 ip-api 获取 IP 地理位置信息
+        # 使用 ip-api 查询国家代码
         response = requests.get(f"http://ip-api.com/json/{ip}")
         data = response.json()
+        
+        # 打印返回的调试数据
+        print(f"IP {ip} 返回数据: {data}")
+        
+        # 如果查询成功，返回国家代码，否则返回 unknown
         if data.get('status') == 'success':
-            country = data.get('countryCode', 'Unknown')  # 返回国家简称
-            return country.lower()  # 转换为小写
+            country = data.get('countryCode', 'unknown')  # 获取国家代码
+            return country.lower()  # 转小写
         else:
             print(f"IP {ip} 查询失败：{data.get('message', '未知错误')}")
             return "unknown"
     except Exception as e:
-        print(f"无法获取 {ip} 的地区信息: {e}")
+        print(f"无法获取 {ip} 的国家信息: {e}")
         return "unknown"
 
 # 保存IP地址到文件
@@ -66,11 +71,11 @@ def main():
 
     # 如果提取到的IP地址为空
     if ip_addresses:
-        # 保存去重后的IP地址到文件，每个IP地址后面加上地区简称
+        # 保存去重后的IP地址到文件，每个IP地址后面加上国家简称
         with open('ip.txt', 'w') as file:
             for ip in ip_addresses:
-                region = get_ip_region(ip)  # 获取地区简称
-                file.write(f"{ip}#{region}\n")  # 在每个IP地址后添加地区简称
+                country = get_ip_country(ip)  # 获取国家简称
+                file.write(f"{ip}#{country}\n")  # 在每个IP地址后添加国家简称
         print('IP地址已保存到 ip.txt 文件中。')
     else:
         print('没有提取到任何IP地址。')
