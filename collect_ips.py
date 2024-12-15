@@ -4,6 +4,7 @@ import re
 
 # 目标URL列表
 urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz',
+        'https://api.uouin.com/cloudflare.html',
         'https://ip.164746.xyz/ipTop.html',
         'https://raw.githubusercontent.com/tianshipapa/cfipcaiji/refs/heads/main/ip.txt',
         'https://addressesapi.090227.xyz/CloudFlareYes',
