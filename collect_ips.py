@@ -6,23 +6,23 @@ import re
 urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz']
 
 # 正则表达式匹配IP地址
-ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'  # 精确匹配IPv4地址
+ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
 
 # 获取IP的国家简称
 def get_ip_country(ip):
     try:
-        # 使用 ip-api 查询国家代码
-        response = requests.get(f"http://ip-api.com/json/{ip}", timeout=5)
-        response.raise_for_status()
+        # 使用 ipwhois 查询国家代码
+        response = requests.get(f"https://ipwhois.app/json/{ip}")
         data = response.json()
 
         # 调试输出：打印 IP 查询的返回数据
         print(f"IP {ip} 查询返回数据: {data}")
 
-        # 检查状态并返回国家代码
-        if data.get('status') == 'success':
-            return data.get('countryCode', 'unknown').lower()
+        # 检查返回数据并获取国家代码
+        if data.get('success', False):
+            return data.get('country_code', 'unknown').lower()
         else:
+            print(f"IP {ip} 查询失败：{data.get('message', '未知错误')}")
             return 'unknown'
     except Exception as e:
         print(f"获取 {ip} 国家信息失败: {e}")
