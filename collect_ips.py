@@ -22,7 +22,7 @@ def extract_ips_from_url(url):
         # 解析HTML内容
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # 调试抓取的HTML内容（可选）
+        # 打印抓取的HTML内容前500字符，用于调试
         print(f"抓取的HTML内容 (前500字符)：\n{response.text[:500]}")
 
         # 直接匹配文本中的IP地址
@@ -48,5 +48,15 @@ def main():
     for url in urls:
         ip_addresses.update(extract_ips_from_url(url))  # 使用update方法添加IP，避免重复
 
-    # 保存去重后的IP地址到文件
-    with open('ip.txt', 'w') as
+    # 如果提取到的IP地址为空
+    if ip_addresses:
+        # 保存去重后的IP地址到文件
+        with open('ip.txt', 'w') as file:
+            for ip in ip_addresses:
+                file.write(ip + '\n')
+        print('IP地址已保存到 ip.txt 文件中。')
+    else:
+        print('没有提取到任何IP地址。')
+
+if __name__ == "__main__":
+    main()
