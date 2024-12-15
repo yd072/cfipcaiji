@@ -4,7 +4,7 @@ import re
 import os
 
 # 目标URL列表
-urls = ['https://monitor.gacjie.cn/page/cloudflare/ipv4.html', 
+urls = ['https://stock.hostmonit.com/CloudFlareYes', 
         'https://ip.164746.xyz'
         ]
 
@@ -25,7 +25,7 @@ with open('ip.txt', 'w') as file:
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # 根据网站的不同结构找到包含IP地址的元素
-        if url == 'https://monitor.gacjie.cn/page/cloudflare/ipv4.html':
+        if url == 'https://stock.hostmonit.com/CloudFlareYes':
             elements = soup.find_all('tr')
         elif url == 'https://ip.164746.xyz':
             elements = soup.find_all('tr')
@@ -40,5 +40,10 @@ with open('ip.txt', 'w') as file:
             # 如果找到IP地址,则写入文件
             for ip in ip_matches:
                 file.write(ip + '\n')
+        # 将所有IP地址写入文件（去重） 
+         with open('ip.txt', 'w') as file:
+                 for ip in set(ip_list): 
+                         file.write(ip + '\n')
+                    
 
 print('IP地址已保存到ip.txt文件中。')
