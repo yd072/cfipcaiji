@@ -8,18 +8,21 @@ urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz']
 # 正则表达式匹配IP地址
 ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'  # 精确匹配IPv4地址
 
-# 获取IP的地区简称
+# 获取IP的国家简称
 def get_ip_region(ip):
     try:
-        # 通过 ipinfo.io 获取 IP 地理位置信息
-        response = requests.get(f"https://ipinfo.io/{ip}/json")
+        # 通过 ip-api 获取 IP 地理位置信息
+        response = requests.get(f"http://ip-api.com/json/{ip}")
         data = response.json()
-        region = data.get('region', 'Unknown')  # 获取地区
-        # 你可以根据需要选择国家或其他字段，例如 'country' 来获取国家简称
-        return region[:2].lower()  # 取前两个字母作为地区简称
+        if data.get('status') == 'success':
+            country = data.get('countryCode', 'Unknown')  # 返回国家简称
+            return country.lower()  # 转换为小写
+        else:
+            print(f"IP {ip} 查询失败：{data.get('message', '未知错误')}")
+            return "unknown"
     except Exception as e:
         print(f"无法获取 {ip} 的地区信息: {e}")
-        return "Unknown"  # 如果获取失败，返回 Unknown
+        return "unknown"
 
 # 保存IP地址到文件
 def extract_ips_from_url(url):
