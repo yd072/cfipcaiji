@@ -3,7 +3,14 @@ from bs4 import BeautifulSoup
 import re
 
 # 目标URL列表
-urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz']
+urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz',
+        'https://ip.164746.xyz/ipTop.html',
+        'https://raw.githubusercontent.com/tianshipapa/cfipcaiji/refs/heads/main/ip.txt',
+        'https://addressesapi.090227.xyz/CloudFlareYes',
+        'https://addressesapi.090227.xyz/ip.164746.xyz',
+        'https://ipdb.api.030101.xyz/?type=bestcf&country=true',
+        'https://ipdb.030101.xyz/api/bestcf.txt'
+       ]
 
 # 正则表达式匹配IP地址
 ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'
