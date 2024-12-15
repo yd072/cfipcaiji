@@ -4,7 +4,7 @@ import re
 import os
 
 # 目标URL列表
-urls = ['https://stock.hostmonit.com/CloudFlareYes', 
+urls = ['https://stock.hostmonit.com/CloudFlareYes',
         'https://ip.164746.xyz'
         ]
 
@@ -40,10 +40,6 @@ with open('ip.txt', 'w') as file:
             # 如果找到IP地址,则写入文件
             for ip in ip_matches:
                 file.write(ip + '\n')
-        # 将所有IP地址写入文件（去重） 
-         with open('ip.txt', 'w') as file:
-                 for ip in set(ip_list): 
-                         file.write(ip + '\n')
                     
 
 print('IP地址已保存到ip.txt文件中。')
