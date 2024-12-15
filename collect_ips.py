@@ -26,34 +26,27 @@ def extract_ips_from_url(url):
         print(f"抓取的HTML内容 (前500字符)：\n{response.text[:500]}")
 
         # 直接匹配文本中的IP地址
-        ip_matches = []
+        ip_matches = set()  # 使用集合来自动去重
         elements = soup.find_all(text=re.compile(ip_pattern))
         for element in elements:
-            ip_matches.extend(re.findall(ip_pattern, element))
+            ip_matches.update(re.findall(ip_pattern, element))  # 使用update方法添加IP，避免重复
 
         if ip_matches:
-            print(f"提取成功：{len(ip_matches)} 个IP来自 {url}")
+            print(f"提取成功：{len(ip_matches)} 个唯一IP来自 {url}")
             return ip_matches
         else:
             print(f"未找到IP地址：{url}")
-            return []
+            return set()
 
     except requests.RequestException as e:
         print(f"请求失败 {url}: {e}")
-        return []
+        return set()
 
 # 主程序
 def main():
-    ip_addresses = []
+    ip_addresses = set()  # 使用集合来保存所有IP地址，自动去重
     for url in urls:
-        ip_addresses.extend(extract_ips_from_url(url))
+        ip_addresses.update(extract_ips_from_url(url))  # 使用update方法添加IP，避免重复
 
-    # 保存IP地址到文件
-    with open('ip.txt', 'w') as file:
-        for ip in ip_addresses:
-            file.write(ip + '\n')
-
-    print('IP地址已保存到 ip.txt 文件中。')
-
-if __name__ == "__main__":
-    main()
+    # 保存去重后的IP地址到文件
+    with open('ip.txt', 'w') as
