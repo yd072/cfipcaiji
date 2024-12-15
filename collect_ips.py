@@ -8,6 +8,19 @@ urls = ['https://cf.090227.xyz', 'https://ip.164746.xyz']
 # 正则表达式匹配IP地址
 ip_pattern = r'\b(?:\d{1,3}\.){3}\d{1,3}\b'  # 精确匹配IPv4地址
 
+# 获取IP的地区简称
+def get_ip_region(ip):
+    try:
+        # 通过 ipinfo.io 获取 IP 地理位置信息
+        response = requests.get(f"https://ipinfo.io/{ip}/json")
+        data = response.json()
+        region = data.get('region', 'Unknown')  # 获取地区
+        # 你可以根据需要选择国家或其他字段，例如 'country' 来获取国家简称
+        return region[:2].lower()  # 取前两个字母作为地区简称
+    except Exception as e:
+        print(f"无法获取 {ip} 的地区信息: {e}")
+        return "Unknown"  # 如果获取失败，返回 Unknown
+
 # 保存IP地址到文件
 def extract_ips_from_url(url):
     try:
@@ -50,10 +63,11 @@ def main():
 
     # 如果提取到的IP地址为空
     if ip_addresses:
-        # 保存去重后的IP地址到文件
+        # 保存去重后的IP地址到文件，每个IP地址后面加上地区简称
         with open('ip.txt', 'w') as file:
             for ip in ip_addresses:
-                file.write(ip + '\n')
+                region = get_ip_region(ip)  # 获取地区简称
+                file.write(f"{ip}#{region}\n")  # 在每个IP地址后添加地区简称
         print('IP地址已保存到 ip.txt 文件中。')
     else:
         print('没有提取到任何IP地址。')
