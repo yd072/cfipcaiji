@@ -31,6 +31,7 @@ jobs:
       # 运行 Python 脚本进行域名解析并保存到 ip.txt
       - name: Run domain IP extraction script
         run: |
+          set -x  # 启用 shell 调试模式
           python your_script.py  # 执行你的脚本来提取并保存 IP 地址
 
       # 上传生成的 ip.txt 文件到工作流的 artifact
