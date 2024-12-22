@@ -12,7 +12,7 @@ domains = [
     'proxyip.aliyun.fxxk.dedyn.io',
     'proxyip.oracle.fxxk.dedyn.io',
     'proxyip.digitalocean.fxxk.dedyn.io',
-    # 可以添加更多的域名
+    # 你可以添加更多的域名
 ]
 
 # 检查 proxyip.txt 文件是否存在，如果存在则删除它
@@ -31,6 +31,10 @@ with open('proxyip.txt', 'w') as file:
             # 使用 ipinfo.io 获取 IP 地址的国家信息
             response = requests.get(f'https://ipinfo.io/{ip_address}/json')
             
+            # 打印响应状态码和内容
+            print(f"请求 ipinfo.io 返回的状态码: {response.status_code}")
+            print(f"响应内容: {response.text}")
+
             # 如果响应失败，检查返回状态码
             if response.status_code != 200:
                 print(f"请求失败，状态码: {response.status_code}，无法获取 {ip_address} 的国家信息")
