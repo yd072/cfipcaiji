@@ -1,4 +1,4 @@
-name: Update PROXYIP List
+name: Update IP List
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  update-ip-list:
+  update-proxyip-list:
     runs-on: ubuntu-latest
     
     steps:
