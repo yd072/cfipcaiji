@@ -1,4 +1,4 @@
-name: Update IP List
+name: Update proxyip List
 
 on:
   schedule:
