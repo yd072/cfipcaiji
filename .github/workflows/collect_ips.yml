@@ -1,5 +1,5 @@
 
-name: YX IPs and DNS
+name: collect_ips and DNS
 
 on:
   workflow_dispatch:  # 手动触发
