@@ -10,36 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install requests
 
-    - name: Run the collect_ips script
-      run: |
-        echo "Running collect_ips.py..."
-        python collect_ips.py || { echo "collect_ips.py failed"; exit 1; }
+      - name: Run the collect_ips script
+        run: python collect_ips.py
 
-    - name: Check if ip.txt exists and has content
-      run: |
-        echo "Checking if ip.txt exists and has content..."
-        if [ -f "ip.txt" ]; then
-          echo "ip.txt exists. Content:"
-          cat ip.txt
-        else
-          echo "ip.txt does not exist."
-        fi
-
-    - name: Commit and push changes
-      run: |
-        git config --global user.email "actions@github.com"
-        git config --global user.name "GitHub Actions"
-        git add ip.txt
-        git diff --cached --quiet || git commit -m "Update ip.txt"
-        git push origin main
+      - name: Commit and push changes
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add ip.txt
+          git commit -m "Update ip.txt" || echo "No changes to commit"
+          git push origin main
