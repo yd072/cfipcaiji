@@ -3,33 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP List</title>
+    <title>IP Lists</title>
 </head>
 <body>
-    <!-- 纯文本显示 IP 列表 -->
-    <pre id="ip-list">Loading IP list...</pre>
+    <h1>IP Lists from Multiple Sources</h1>
+    <div id="ip-container">
+        Loading IP lists...
+    </div>
 
     <script>
-        // 读取 GitHub 上 ip.txt 文件的 URL
-        const ipFileUrl = 'https://raw.githubusercontent.com/yd072/cfipcaiji/refs/heads/main/ip.txt';
+        // 定义多个 GitHub txt 文件的 URL
+        const ipFileUrls = [
+            'https://raw.githubusercontent.com/yd072/cfipcaiji/refs/heads/main/ip.txt',
+            
+            // 添加更多 URL
+        ];
 
-        // 使用 Fetch API 获取 ip.txt 文件内容
-        fetch(ipFileUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch IP list');
+        // 获取内容并显示
+        async function fetchAndDisplayIPs(urls) {
+            const container = document.getElementById('ip-container');
+            container.innerHTML = ''; // 清空默认消息
+
+            for (const url of urls) {
+                const section = document.createElement('section');
+                section.innerHTML = `<h3>Fetching from: ${url}</h3><pre>Loading...</pre>`;
+                container.appendChild(section);
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch from ${url}`);
+                    }
+                    const text = await response.text();
+                    section.querySelector('pre').textContent = text;
+                } catch (error) {
+                    section.querySelector('pre').textContent = `Error: Unable to fetch content from ${url}`;
+                    console.error(error);
                 }
-                return response.text();
-            })
-            .then(ipText => {
-                // 将 ip.txt 内容显示在页面中
-                document.getElementById('ip-list').textContent = ipText;
-            })
-            .catch(error => {
-                // 显示错误信息
-                document.getElementById('ip-list').textContent = 'Unable to load IP list.';
-                console.error('Error fetching IP list:', error);
-            });
+            }
+        }
+
+        // 调用函数读取内容
+        fetchAndDisplayIPs(ipFileUrls);
     </script>
 </body>
 </html>
