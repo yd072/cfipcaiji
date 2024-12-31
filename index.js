@@ -1,10 +1,10 @@
-// Cloudflare Worker：从 GitHub Pages 读取 ip.txt 文件并显示
+// Cloudflare Worker：从 Cloudflare Pages 读取 ip.txt 文件并显示
 
 async function handleRequest(request) {
-    // GitHub Pages URL 或其他存储位置
+    // GitHub Pages URL 或 Cloudflare Pages URL
     const ipFileUrl = 'https://raw.githubusercontent.com/yd072/cfipcaiji/refs/heads/main/ip.txt';
     
-    // 从 GitHub Pages 获取 ip.txt 文件内容
+    // 从 Cloudflare Pages 获取 ip.txt 文件内容
     const response = await fetch(ipFileUrl);
     
     if (response.ok) {
