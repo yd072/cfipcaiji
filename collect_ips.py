@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # 要提取 IP 的目标 URL 列表
     target_urls = [
         "https://cf.090227.xyz",  # 示例 URL
-        "https://ip.164746.xyz/ipTop10.html",  # 示例 URL
+        
     ]
     
     # 提取 IP 并保存
