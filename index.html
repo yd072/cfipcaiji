@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Extractor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap; /* Allows long IP addresses to wrap */
+            word-wrap: break-word;
+        }
+        h1 {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extracted IP Addresses</h1>
+    <pre id="ip-list">Loading...</pre>
+
+    <script>
+        // 读取 GitHub 上 ip.txt 文件的 URL
+        const ipFileUrl = 'https://raw.githubusercontent.com/yd072/cfipcaiji/refs/heads/main/ip.txt';
+
+        // 使用 Fetch API 获取 ip.txt 文件内容
+        fetch(ipFileUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch IP list');
+                }
+                return response.text();
+            })
+            .then(ipText => {
+                // 将 ip.txt 内容显示在页面中
+                document.getElementById('ip-list').textContent = ipText;
+            })
+            .catch(error => {
+                document.getElementById('ip-list').textContent = 'Unable to load IP list.';
+                console.error(error);
+            });
+    </script>
+</body>
+</html>
