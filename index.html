@@ -3,27 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP Extractor</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        pre {
-            background-color: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-            white-space: pre-wrap; /* Allows long IP addresses to wrap */
-            word-wrap: break-word;
-        }
-        h1 {
-            text-align: center;
-        }
-    </style>
+    <title>IP List</title>
 </head>
 <body>
-    <h1></h1>
-    <pre id="ip-list">Loading...</pre>
+    <!-- 纯文本显示 IP 列表 -->
+    <pre id="ip-list">Loading IP list...</pre>
 
     <script>
         // 读取 GitHub 上 ip.txt 文件的 URL
@@ -42,8 +26,9 @@
                 document.getElementById('ip-list').textContent = ipText;
             })
             .catch(error => {
+                // 显示错误信息
                 document.getElementById('ip-list').textContent = 'Unable to load IP list.';
-                console.error(error);
+                console.error('Error fetching IP list:', error);
             });
     </script>
 </body>
