@@ -3,7 +3,7 @@ name: collect_ips
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 8,20 * * *'  # 每天 08:00 和 20:00 触发，UTC 时间
+    - cron: '0 9 * * *'  # 每天 09:00  触发，UTC 时间
 
 jobs:
   run-and-commit:
