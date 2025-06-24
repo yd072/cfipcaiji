@@ -52,7 +52,7 @@ def save_ips_to_file(ips_with_country, filename='ip.txt'):
     # 写入文件
     with open(filename, 'w') as file:
         for ip, country in sorted(ips_with_country.items()):  # 按 IP 排序
-            file.write(f"{ip}#{country}\n")
+            file.write(f"{ip}\n")
     
     print(f"提取到 {len(ips_with_country)} 个 IP 地址，已保存到 {filename}")
 
@@ -79,7 +79,7 @@ def fetch_and_save_ips(urls):
 if __name__ == "__main__":
     # 要提取 IP 的目标 URL 列表
     target_urls = [
-        "https://cf.090227.xyz",  # 示例 URL
+        "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/All_Configs_Sub.txt",  # 示例 URL
         
     ]
     
