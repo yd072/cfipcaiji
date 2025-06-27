@@ -1,4 +1,4 @@
-name: Custom IP Speed Test with Auto Commit and Custom Params
+name: Custom IP Speed
 
 on:
   workflow_dispatch:  # 手动触发
