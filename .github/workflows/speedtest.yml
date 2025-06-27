@@ -3,7 +3,7 @@ name: Custom IP Speed
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 3 * * *'  # 每天UTC凌晨3点自动运行
+    - cron: '0 */6 * * *'  # 每6小时自动运行
   push:
     paths:
       - my_ips.txt  # 当 my_ips.txt 更新时触发
