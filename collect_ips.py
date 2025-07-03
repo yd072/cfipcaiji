@@ -1,7 +1,6 @@
 import requests
 import re
 import os
-from bs4 import BeautifulSoup
 from ipwhois import IPWhois
 
 def extract_ips_and_speeds_from_web(url):
@@ -15,26 +14,18 @@ def extract_ips_and_speeds_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 使用 BeautifulSoup 解析网页内容
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 假设网页中的网速数据存储在特定的标签中，比如 <div class="ip-speed">
-            ips_and_speeds = []
-
-            # 遍历所有包含 IP 和网速的标签
-            for ip_section in soup.find_all('div', class_='ip-speed'):  # 假设 class 名为 'ip-speed'
-                ip = ip_section.get('data-ip')  # 假设 IP 地址存储在 data-ip 属性中
-                speed = ip_section.get('data-speed')  # 假设网速存储在 data-speed 属性中
-                
-                if ip and speed:
-                    # 假设网速单位是 MB/s
-                    try:
-                        speed_value = float(speed.replace('MB/s', '').strip())  # 提取并转换为数字
-                        if speed_value >= 10:  # 只保留网速 >= 10MB/s 的 IP
-                            ips_and_speeds.append((ip, speed_value))
-                    except ValueError:
-                        pass  # 如果转换失败，跳过该 IP
-            return ips_and_speeds
+            # 使用正则表达式提取每行的 IP 地址和网速
+            ip_speed_data = []
+            lines = response.text.splitlines()
+            for line in lines:
+                # 正则匹配 IP 地址和网速信息
+                match = re.search(r'(\d+\.\d+\.\d+\.\d+)\s+\d+\.\d+ms\s+(\d+\.\d+)mb/s', line)
+                if match:
+                    ip = match.group(1)  # IP 地址
+                    speed = float(match.group(2))  # 网速，转换为数字
+                    if speed >= 10:  # 筛选网速大于等于 10MB/s 的 IP
+                        ip_speed_data.append((ip, speed))
+            return ip_speed_data
         else:
             print(f"无法访问 {url}, 状态码: {response.status_code}")
             return []
