@@ -1,6 +1,8 @@
 import requests
 import re
+import os
 import pandas as pd
+from ipwhois import IPWhois
 
 def extract_ip_speed_and_latency_from_web(url):
     """
@@ -41,10 +43,11 @@ def save_data_to_csv(data, filename='ip_info.csv'):
     将提取的 IP 地址、延迟和速度信息保存到项目中的 ip_info.csv 文件
     """
     if data:
-        df = pd.DataFrame(data)  # 将数据转换为 DataFrame
-        # 将数据保存到项目目录中的 ip_info.csv 文件
-        df.to_csv(f"./{filename}", index=False)  # 这里将文件保存到当前工作目录
-        print(f"数据已保存到 {filename}")
+        df = pd.DataFrame(data)
+        # 保存文件到当前工作目录 (即项目目录)
+        file_path = os.path.join(os.getcwd(), filename)  # 确保保存路径在项目中
+        df.to_csv(file_path, index=False)
+        print(f"数据已保存到 {file_path}")
     else:
         print("没有数据可以保存到 CSV 文件")
 
@@ -62,11 +65,12 @@ def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_th
         filtered_df = df[df['Speed (MB/s)'] >= speed_threshold]
         
         # 提取符合条件的 IP 并保存到文件
-        with open(output_file, 'w') as f:
+        output_path = os.path.join(os.getcwd(), output_file)  # 确保保存路径在项目中
+        with open(output_path, 'w') as f:
             for ip in filtered_df['IP']:
                 f.write(f"{ip}\n")
         
-        print(f"符合条件的 IP 已保存到 {output_file}")
+        print(f"符合条件的 IP 已保存到 {output_path}")
     except Exception as e:
         print(f"读取 CSV 文件或筛选时出错: {e}")
 
