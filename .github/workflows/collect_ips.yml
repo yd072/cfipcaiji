@@ -55,12 +55,13 @@ jobs:
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
         
-        # Add ip.txt if it has changed
+        # 添加 ip.txt 到暂存区
         git add ip.txt
         
-        # Check if there are changes to commit
+        # 检查是否有变更
         if git diff --cached --exit-code; then
           echo "No changes to commit."
-        else:
+        else
+          # 如果有变更，提交并推送
           git commit -m "Update ip.txt"
           git push origin main
