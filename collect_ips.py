@@ -15,9 +15,9 @@ def extract_ips_and_speed_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 打印网页内容的前 1000 个字符，帮助调试
+            # 打印网页内容的前 2000 个字符，帮助调试
             print("网页内容预览：")
-            print(response.text[:1000])  # 只打印前1000个字符
+            print(response.text[:2000])  # 只打印前2000个字符，确保足够内容
             
             # 假设网页中 IP 和网速信息格式为 "IP 地址 - 网速 mb/s"
             ip_speed_pairs = re.findall(r'(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)\s*-\s*(\d+(\.\d+)?)\s*mb/s', response.text)
