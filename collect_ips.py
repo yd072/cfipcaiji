@@ -1,8 +1,6 @@
 import requests
 import re
-import os
 import pandas as pd
-from ipwhois import IPWhois
 
 def extract_ip_speed_and_latency_from_web(url):
     """
@@ -10,22 +8,21 @@ def extract_ip_speed_and_latency_from_web(url):
     假设页面中有 IP、延迟和速度的模式，实际情况可能需要调整
     """
     try:
-        # 设置请求头模拟浏览器访问
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
         
         # 检查响应状态
         if response.status_code == 200:
-            # 使用正则表达式提取 IP 地址、延迟、速度（此处根据实际网页结构调整）
+            # 正则表达式提取 IP 地址、延迟、速度
             ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
-            latency_pattern = r'Latency:\s*(\d+\.\d+)'  # 假设延迟格式为 Latency: 1.23ms
-            speed_pattern = r'Speed:\s*(\d+\.\d+)\s*MB/s'  # 假设速度格式为 Speed: 12.34MB/s
+            latency_pattern = r'Latency:\s*(\d+\.\d+)\s*ms'  # 假设延迟格式是 ms
+            speed_pattern = r'Speed:\s*(\d+\.\d+)\s*MB/s'  # 假设速度格式是 MB/s
 
+            # 提取 IP 地址、延迟和速度
             ips = re.findall(ip_pattern, response.text)
             latencies = re.findall(latency_pattern, response.text)
             speeds = re.findall(speed_pattern, response.text)
 
-            # 打印提取的 IP、延迟和速度，检查数据是否正确
             print(f"提取的 IP: {ips}")
             print(f"提取的延迟: {latencies}")
             print(f"提取的速度: {speeds}")
@@ -47,23 +44,18 @@ def save_data_to_csv(data, filename='ip_info.csv'):
     """
     将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
     """
-    if not data:
-        print("没有提取到任何数据，无法保存到 CSV 文件。")
-    else:
+    if data:
         df = pd.DataFrame(data)
-        print(f"生成的 DataFrame:\n{df}")  # 打印 DataFrame 查看内容
         df.to_csv(filename, index=False)
         print(f"数据已保存到 {filename}")
+    else:
+        print("没有数据可以保存到 CSV 文件")
 
 def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
     """
     从 CSV 文件中筛选出速度大于等于 speed_threshold 的 IP 地址并保存到 ip.txt
     """
     try:
-        if os.stat(input_file).st_size == 0:
-            print(f"错误: {input_file} 文件为空，无法读取数据。")
-            return
-        
         df = pd.read_csv(input_file)
         
         # 转换 Speed (MB/s) 列为浮动数值
