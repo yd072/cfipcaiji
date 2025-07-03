@@ -1,107 +1,87 @@
+import requests
 import re
-import time
-import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+import os
+from ipwhois import IPWhois
 
-
-def extract_ip_speed_and_latency_from_web(url):
+def extract_ips_from_web(url):
     """
-    使用 selenium 加载网页并提取 IP、延迟、速度等数据（等待 JS 加载完成）
+    从指定网页提取所有 IP 地址
     """
     try:
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")  # 无头模式
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox")
-
-        driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-        driver.get(url)
-
-        # 等待页面中包含表格或类似内容加载完毕（你可根据页面内容调整等待条件）
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "table"))
-        )
-        time.sleep(2)  # 保守等待额外加载
-
-        page_source = driver.page_source
-        driver.quit()
-
-        # 正则提取
-        ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
-        latency_pattern = r'(\d+\.\d+)ms'
-        speed_pattern = r'(\d+\.\d+)mb/s'
-
-        ip_list = re.findall(ip_pattern, page_source)
-        latency_list = re.findall(latency_pattern, page_source)
-        speed_list = re.findall(speed_pattern, page_source)
-
-        # 构造数据
-        data = []
-        for ip, latency, speed in zip(ip_list, latency_list, speed_list):
-            data.append({
-                "IP": ip,
-                "Latency (ms)": latency,
-                "Speed (MB/s)": speed,
-            })
-
-        return data
+        # 设置请求头模拟浏览器访问
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        # 检查响应状态
+        if response.status_code == 200:
+            # 使用正则表达式提取 IP 地址
+            return re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', response.text)
+        else:
+            print(f"无法访问 {url}, 状态码: {response.status_code}")
+            return []
     except Exception as e:
-        print(f"抓取网页 {url} 时出错: {e}")
+        print(f"抓取网页 {url} 时发生错误: {e}")
         return []
 
-
-def save_data_to_csv(data, filename='ip_info.csv'):
+def get_country_for_ip(ip, cache):
     """
-    将提取的数据保存到 CSV，并去重
+    查询 IP 的国家简称，使用缓存避免重复查询
     """
-    df = pd.DataFrame(data)
-    df.drop_duplicates(subset='IP', inplace=True)  # 根据 IP 去重
-    df.to_csv(filename, index=False)
-    print(f"已保存去重后的数据到 {filename}")
-
-
-def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
-    """
-    筛选速度 ≥ 指定阈值的 IP，并保存到 txt 文件
-    """
+    if ip in cache:
+        return cache[ip]
+    
     try:
-        df = pd.read_csv(input_file)
-        df['Speed (MB/s)'] = pd.to_numeric(df['Speed (MB/s)'], errors='coerce')
-        filtered_df = df[df['Speed (MB/s)'] >= speed_threshold]
-        
-        with open(output_file, 'w') as f:
-            for ip in filtered_df['IP']:
-                f.write(f"{ip}\n")
-        
-        print(f"已保存符合条件的 IP 到 {output_file}")
+        ipwhois = IPWhois(ip)
+        result = ipwhois.lookup_rdap()
+        country = result.get('asn_country_code', 'Unknown')
+        cache[ip] = country
+        return country
     except Exception as e:
-        print(f"筛选 IP 时出错: {e}")
+        print(f"查询 {ip} 的国家代码失败: {e}")
+        cache[ip] = 'Unknown'
+        return 'Unknown'
 
+def save_ips_to_file(ips_with_country, filename='ip.txt'):
+    """
+    将提取的 IP 地址和国家简称保存到文件
+    """
+    # 删除已有文件，确保文件干净
+    if os.path.exists(filename):
+        os.remove(filename)
+    
+    # 写入文件
+    with open(filename, 'w') as file:
+        for ip, country in sorted(ips_with_country.items()):  # 按 IP 排序
+            file.write(f"{ip}\n")   # {country}
+    
+    print(f"提取到 {len(ips_with_country)} 个 IP 地址，已保存到 {filename}")
 
-def fetch_and_process_ips(urls):
+def fetch_and_save_ips(urls):
     """
-    从多个网页提取并处理 IP 数据
+    从多个 URL 提取 IP 地址及其国家简称并保存到文件
     """
-    all_data = []
+    all_ips = set()
+    cache = {}  # 缓存查询结果，避免重复查询
+
+    # 提取所有 IP 地址
     for url in urls:
-        print(f"正在提取：{url}")
-        data = extract_ip_speed_and_latency_from_web(url)
-        all_data.extend(data)
+        print(f"正在提取 {url} 的 IP 地址...")
+        ips = extract_ips_from_web(url)
+        all_ips.update(ips)
+    
+    # 查询国家信息
+    print("正在查询 IP 的国家简称...")
+    ips_with_country = {ip: get_country_for_ip(ip, cache) for ip in all_ips}
 
-    if all_data:
-        save_data_to_csv(all_data)
-        filter_ips_by_speed()
-    else:
-        print("未提取到数据，CSV 未创建。")
-
+    # 保存结果到文件
+    save_ips_to_file(ips_with_country)
 
 if __name__ == "__main__":
+    # 要提取 IP 的目标 URL 列表
     target_urls = [
-        "https://api.uouin.com/cloudflare.html"
+        "https://api.uouin.com/cloudflare.html",  # 示例 URL
+        
     ]
-    fetch_and_process_ips(target_urls)
+    
+    # 提取 IP 并保存
+    fetch_and_save_ips(target_urls)
