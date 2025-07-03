@@ -5,9 +5,6 @@ import os
 from ipwhois import IPWhois
 
 def extract_ips_with_speed(url, speed_threshold=10):
-    """
-    从指定网页提取 IP 和速度，筛选速度 >= speed_threshold 的 IP
-    """
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
@@ -16,7 +13,6 @@ def extract_ips_with_speed(url, speed_threshold=10):
             return {}
 
         soup = BeautifulSoup(response.text, "html.parser")
-
         tbody = soup.find("tbody")
         if not tbody:
             print("网页中找不到 tbody 标签")
@@ -26,15 +22,13 @@ def extract_ips_with_speed(url, speed_threshold=10):
 
         for tr in tbody.find_all("tr"):
             tds = tr.find_all("td")
-            if len(tds) < 5:
+            if len(tds) < 6:
                 continue
             
-            # 正确的列索引：IP在第2列，丢包率第3列，速度第5列
-            ip = tds[1].get_text(strip=True)
-            loss = tds[2].get_text(strip=True)
-            speed_text = tds[4].get_text(strip=True)  # 速度格式类似 "43.85mb/s"
+            ip = tds[2].get_text(strip=True)
+            loss = tds[3].get_text(strip=True)
+            speed_text = tds[5].get_text(strip=True)  # 速度如 "43.85mb/s"
 
-            # 提取速度数字部分
             match = re.match(r"([\d\.]+)", speed_text)
             if not match:
                 continue
