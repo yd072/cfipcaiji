@@ -3,7 +3,7 @@ name: collect_ips
 on:
   workflow_dispatch:  # 手动触发
   schedule:
-    - cron: '0 3 * * *'  # 每 3 小时触发，UTC 时间
+    - cron: '0 */3 * * *'  # 每3小时触发（修改成正确的每3小时，之前写的0 3 * * *是每天3点）
 
 jobs:
   run-and-commit:
@@ -21,13 +21,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 ipwhois
+        pip install requests ipwhois  # 删除了beautifulsoup4，没用到
 
-    - name: Run the yx_ips script
+    - name: Run the collect_ips script
       run: |
-        echo "Running the yx_ips script..."
+        echo "Running the collect_ips.py script..."
         python collect_ips.py
-        echo "collect_ips script completed."
+        echo "collect_ips.py script completed."
 
     - name: Check if ip.txt exists and has content
       run: |
@@ -39,17 +39,28 @@ jobs:
           echo "ip.txt does not exist."
         fi
 
-    - name: Check if ip.txt has changed
+    - name: Check if ip_info.csv exists and has content
       run: |
-        echo "Checking if ip.txt has changed..."
+        echo "Checking if ip_info.csv exists and has content..."
+        if [ -f "ip_info.csv" ]; then
+          echo "ip_info.csv exists. Content:"
+          head -20 ip_info.csv  # 显示前20行，防止太大
+        else
+          echo "ip_info.csv does not exist."
+        fi
+
+    - name: Check if files have changed
+      run: |
+        echo "Checking git status and diffs..."
         git status
         git diff ip.txt || echo "No changes detected in ip.txt"
+        git diff ip_info.csv || echo "No changes detected in ip_info.csv"
 
     - name: Commit and push changes
       run: |
         echo "Attempting to commit changes..."
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
-        git add ip.txt
-        git commit -m "Update ip.txt" || echo "No changes to commit"
+        git add ip.txt ip_info.csv
+        git commit -m "Update ip.txt and ip_info.csv" || echo "No changes to commit"
         git push origin main
