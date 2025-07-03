@@ -28,7 +28,7 @@ def extract_ips_and_speeds_from_web(url):
                 if match:
                     ip = match.group(1)  # IP 地址
                     speed = float(match.group(2))  # 网速，转换为数字
-                    if speed >= 10:  # 筛选网速大于等于 10MB/s 的 IP
+                    if speed >= 8:  # 筛选网速大于等于 10MB/s 的 IP
                         ip_speed_data.append((ip, speed))
             return ip_speed_data
         else:
