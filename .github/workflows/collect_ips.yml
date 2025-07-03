@@ -24,9 +24,7 @@ jobs:
         pip install requests beautifulsoup4 ipwhois selenium
 
     - name: Setup ChromeDriver
-      uses: SeleniumHQ/action-chromedriver@v1.0.0
-      with:
-        chromedriver-version: 'latest'
+      uses: browser-actions/setup-chromedriver@v1
 
     - name: Run the yx_ips script
       run: |
