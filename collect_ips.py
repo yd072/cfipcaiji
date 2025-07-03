@@ -1,5 +1,6 @@
 import requests
 import re
+import time  # 导入 time 模块
 import pandas as pd
 
 def extract_ip_speed_and_latency_from_web(url):
@@ -7,6 +8,10 @@ def extract_ip_speed_and_latency_from_web(url):
     从指定网页提取 IP 地址、延迟、速度等信息，假设页面内容是表格格式
     """
     try:
+        # 先等待 5 秒再发送请求
+        print("等待 5 秒以模拟请求延迟...")
+        time.sleep(5)
+        
         # 设置请求头模拟浏览器访问
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
@@ -97,7 +102,7 @@ def fetch_and_process_ips(urls):
 if __name__ == "__main__":
     # 要提取数据的目标 URL 列表
     target_urls = [
-        "https://api.uouin.com/cloudflare.html" # 示例 URL
+        "https://api.uouin.com/cloudflare.html",  # 示例 URL
     ]
     
     # 提取数据并处理
