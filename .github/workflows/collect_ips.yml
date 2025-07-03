@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 ipwhois selenium webdriver-manager
+        pip install requests beautifulsoup4 ipwhois
 
     - name: Run the yx_ips script
       run: |
@@ -51,4 +51,17 @@ jobs:
 
     - name: Commit and push changes if ip.txt has changed
       run: |
-        echo "Attempting to commit chang
+        echo "Attempting to commit changes..."
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        
+        # Add ip.txt if it has changed
+        git add ip.txt
+        
+        # Check if there are changes to commit
+        if git diff --cached --exit-code; then
+          echo "No changes to commit."
+        else
+          git commit -m "Update ip.txt"
+          git push origin main
+        fi
