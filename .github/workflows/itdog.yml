@@ -1,0 +1,38 @@
+name: Get Best CF IPs via ITDog
+
+on:
+  workflow_dispatch:  # 手动触发
+  schedule:
+    - cron: '0 3 * * *'  # 每天 UTC+0 3点运行（可调整）
+
+jobs:
+  ping_ips:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: pip install requests
+
+    - name: Run ping script
+      run: python ping_itdog.py
+
+    - name: Show best IPs
+      run: cat ip_info.txt
+
+    - name: Commit ip_info.txt
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add ip_info.txt
+        git commit -m "Update best CF IPs via itdog.cn"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
