@@ -15,8 +15,12 @@ def extract_ips_and_speed_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
+            # 打印网页内容来调试
+            print(response.text[:1000])  # 只打印前1000个字符
+            
             # 假设网页中 IP 和网速信息格式为 "IP 地址 - 网速 mb/s"
             ip_speed_pairs = re.findall(r'(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)\s*-\s*(\d+(\.\d+)?)\s*mb/s', response.text)
+            print(f"提取到的 IP 和网速对：{ip_speed_pairs}")  # 打印提取出来的数据
             return ip_speed_pairs
         else:
             print(f"无法访问 {url}, 状态码: {response.status_code}")
@@ -69,6 +73,7 @@ def fetch_and_save_ips(urls):
     for url in urls:
         print(f"正在提取 {url} 的 IP 地址和网速...")
         ip_speed_pairs = extract_ips_and_speed_from_web(url)
+        
         # 只选择网速大于或等于 10 Mbps（即 1.25 mb/s）的 IP
         fast_ips = {ip for ip, speed in ip_speed_pairs if float(speed) * 8 >= 10}
         all_ips.update(fast_ips)
