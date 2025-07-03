@@ -3,7 +3,7 @@ name: collect_ips
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */3 * * *'  # 每3小时触发
+    - cron: '0 3 * * *'  # 每天 UTC 3 点执行
 
 jobs:
   run-and-commit:
@@ -21,14 +21,36 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests ipwhois
+        pip install requests beautifulsoup4 ipwhois selenium
 
-    - name: Run the script
-      run: python collect_ips.py
+    - name: Setup Chromedriver
+      uses: actions/setup-chromedriver@v1
+      with:
+        version: 'latest'
 
-    - name: Commit and push results
+    - name: Run collect_ips.py script
+      run: |
+        python collect_ips.py
+
+    - name: Check if ip_info.csv and ip.txt exist
+      run: |
+        if [ -f "ip_info.csv" ]; then
+          echo "ip_info.csv 内容预览:"
+          head -n 10 ip_info.csv
+        else
+          echo "ip_info.csv 不存在"
+        fi
+        if [ -f "ip.txt" ]; then
+          echo "ip.txt 内容预览:"
+          head -n 10 ip.txt
+        else
+          echo "ip.txt 不存在"
+        fi
+
+    - name: Commit and push changes
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
-        git add ip.txt ip_info.csv
-        git diff --cached --quiet || (git commit -m "Update IP info files" && git push)
+        git add ip_info.csv ip.txt
+        git commit -m "自动更新 IP 信息和筛选结果" || echo "无改动，无需提交"
+        git push origin main
