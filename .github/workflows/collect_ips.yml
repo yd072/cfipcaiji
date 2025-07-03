@@ -64,3 +64,4 @@ jobs:
           # 如果有变更，提交并推送
           git commit -m "Update ip.txt"
           git push origin main
+        fi  # 确保这里有 fi，关闭 if 语句
