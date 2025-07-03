@@ -25,6 +25,11 @@ def extract_ip_speed_and_latency_from_web(url):
             latencies = re.findall(latency_pattern, response.text)
             speeds = re.findall(speed_pattern, response.text)
 
+            # 打印提取的 IP、延迟和速度，检查数据是否正确
+            print(f"提取的 IP: {ips}")
+            print(f"提取的延迟: {latencies}")
+            print(f"提取的速度: {speeds}")
+
             # 确保提取到的列表长度一致
             data = []
             for ip, latency, speed in zip(ips, latencies, speeds):
@@ -42,15 +47,23 @@ def save_data_to_csv(data, filename='ip_info.csv'):
     """
     将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
     """
-    df = pd.DataFrame(data)
-    df.to_csv(filename, index=False)
-    print(f"数据已保存到 {filename}")
+    if not data:
+        print("没有提取到任何数据，无法保存到 CSV 文件。")
+    else:
+        df = pd.DataFrame(data)
+        print(f"生成的 DataFrame:\n{df}")  # 打印 DataFrame 查看内容
+        df.to_csv(filename, index=False)
+        print(f"数据已保存到 {filename}")
 
 def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
     """
     从 CSV 文件中筛选出速度大于等于 speed_threshold 的 IP 地址并保存到 ip.txt
     """
     try:
+        if os.stat(input_file).st_size == 0:
+            print(f"错误: {input_file} 文件为空，无法读取数据。")
+            return
+        
         df = pd.read_csv(input_file)
         
         # 转换 Speed (MB/s) 列为浮动数值
