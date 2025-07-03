@@ -23,8 +23,26 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4 ipwhois selenium
 
-    - name: Setup ChromeDriver
-      uses: browser-actions/setup-chromedriver@v1
+    - name: Get Chrome version
+      id: get_chrome_version
+      run: |
+        google-chrome --version
+
+    - name: Install ChromeDriver
+      run: |
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+        echo "Chrome version detected: $CHROME_VERSION"
+        # 获取Chrome主版本号
+        CHROME_MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d '.' -f 1)
+        echo "Chrome major version: $CHROME_MAJOR_VERSION"
+        # 下载对应版本的ChromeDriver
+        wget -N https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_MAJOR_VERSION -O chrome_driver_version
+        CHROMEDRIVER_VERSION=$(cat chrome_driver_version)
+        echo "ChromeDriver version to download: $CHROMEDRIVER_VERSION"
+        wget -N https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
+        unzip -o chromedriver_linux64.zip -d /usr/local/bin/
+        chmod +x /usr/local/bin/chromedriver
+        chromedriver --version
 
     - name: Run the yx_ips script
       run: |
