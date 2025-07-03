@@ -1,12 +1,13 @@
 import requests
 import re
 import os
-import csv
+import pandas as pd
 from ipwhois import IPWhois
 
-def extract_ips_from_web(url):
+def extract_ip_speed_and_latency_from_web(url):
     """
-    从指定网页提取所有 IP 地址
+    从指定网页提取 IP 地址、延迟和速度信息
+    假设页面中有 IP、延迟和速度的模式，实际情况可能需要调整
     """
     try:
         # 设置请求头模拟浏览器访问
@@ -15,73 +16,81 @@ def extract_ips_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 使用正则表达式提取 IP 地址
-            return re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', response.text), response.elapsed.total_seconds()
+            # 使用正则表达式提取 IP 地址、延迟、速度（此处根据实际网页结构调整）
+            ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
+            latency_pattern = r'Latency:\s*(\d+\.\d+)'  # 假设延迟格式为 Latency: 1.23ms
+            speed_pattern = r'Speed:\s*(\d+\.\d+)\s*MB/s'  # 假设速度格式为 Speed: 12.34MB/s
+
+            ips = re.findall(ip_pattern, response.text)
+            latencies = re.findall(latency_pattern, response.text)
+            speeds = re.findall(speed_pattern, response.text)
+
+            # 确保提取到的列表长度一致
+            data = []
+            for ip, latency, speed in zip(ips, latencies, speeds):
+                data.append({"IP": ip, "Latency (ms)": latency, "Speed (MB/s)": speed})
+
+            return data
         else:
             print(f"无法访问 {url}, 状态码: {response.status_code}")
-            return [], 0
+            return []
     except Exception as e:
         print(f"抓取网页 {url} 时发生错误: {e}")
-        return [], 0
+        return []
 
-def get_country_for_ip(ip, cache):
+def save_data_to_csv(data, filename='ip_info.csv'):
     """
-    查询 IP 的国家简称，使用缓存避免重复查询
+    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
     """
-    if ip in cache:
-        return cache[ip]
-    
+    df = pd.DataFrame(data)
+    df.to_csv(filename, index=False)
+    print(f"数据已保存到 {filename}")
+
+def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
+    """
+    从 CSV 文件中筛选出速度大于等于 speed_threshold 的 IP 地址并保存到 ip.txt
+    """
     try:
-        ipwhois = IPWhois(ip)
-        result = ipwhois.lookup_rdap()
-        country = result.get('asn_country_code', '未知')
-        cache[ip] = country
-        return country
-    except Exception as e:
-        print(f"查询 {ip} 的国家代码失败: {e}")
-        cache[ip] = '未知'
-        return '未知'
-
-def save_ips_to_csv(ips_with_info, filename='ip_info.csv'):
-    """
-    将提取的 IP 地址、延迟和国家简称保存到 CSV 文件
-    """
-    # 写入 CSV 文件
-    with open(filename, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        # 写入表头
-        writer.writerow(['IP 地址', '国家简称', '延迟 (秒)', '速度 (秒)'])  # 中文表头
-        # 写入数据
-        for ip, (country, latency) in sorted(ips_with_info.items()):  # 按 IP 排序
-            writer.writerow([ip, country, latency, latency])  # 假设速度等于延迟，实际情况可以调整
-    
-    print(f"提取到 {len(ips_with_info)} 个 IP 地址，已保存到 {filename}")
-
-def fetch_and_save_ips(urls):
-    """
-    从多个 URL 提取 IP 地址、延迟、速度及其国家简称并保存到文件
-    """
-    all_ips_info = {}  # 存储 IP 信息，包括国家、延迟
-    cache = {}  # 缓存查询结果，避免重复查询
-
-    # 提取所有 IP 地址及其延迟
-    for url in urls:
-        print(f"正在提取 {url} 的 IP 地址...")
-        ips, latency = extract_ips_from_web(url)
+        df = pd.read_csv(input_file)
         
-        # 存储 IP 和相关信息
-        for ip in ips:
-            country = get_country_for_ip(ip, cache)
-            all_ips_info[ip] = (country, latency)
-    
-    # 保存结果到 CSV 文件
-    save_ips_to_csv(all_ips_info)
+        # 转换 Speed (MB/s) 列为浮动数值
+        df['Speed (MB/s)'] = pd.to_numeric(df['Speed (MB/s)'], errors='coerce')
+        
+        # 筛选出速度大于等于 speed_threshold 的 IP
+        filtered_df = df[df['Speed (MB/s)'] >= speed_threshold]
+        
+        # 提取符合条件的 IP 并保存到文件
+        with open(output_file, 'w') as f:
+            for ip in filtered_df['IP']:
+                f.write(f"{ip}\n")
+        
+        print(f"符合条件的 IP 已保存到 {output_file}")
+    except Exception as e:
+        print(f"读取 CSV 文件或筛选时出错: {e}")
+
+def fetch_and_process_ips(urls):
+    """
+    从多个 URL 提取 IP 地址、延迟和速度信息，保存到 CSV，并筛选速度大于等于 10MB/s 的 IP
+    """
+    all_data = []
+
+    # 提取所有数据
+    for url in urls:
+        print(f"正在提取 {url} 的数据...")
+        data = extract_ip_speed_and_latency_from_web(url)
+        all_data.extend(data)
+
+    # 保存数据到 CSV 文件
+    save_data_to_csv(all_data)
+
+    # 筛选并保存符合条件的 IP 地址到 txt 文件
+    filter_ips_by_speed()
 
 if __name__ == "__main__":
-    # 要提取 IP 的目标 URL 列表
+    # 要提取数据的目标 URL 列表
     target_urls = [
         "https://api.uouin.com/cloudflare.html",  # 示例 URL
     ]
     
-    # 提取 IP 并保存
-    fetch_and_save_ips(target_urls)
+    # 提取数据并处理
+    fetch_and_process_ips(target_urls)
