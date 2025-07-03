@@ -3,17 +3,17 @@ name: collect_ips
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 3 * * *'  # 每天凌晨3点执行（UTC）
 
 jobs:
   run-and-commit:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout repo
       uses: actions/checkout@v2
 
-    - name: Set up Python
+    - name: Setup Python
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
@@ -23,43 +23,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4 ipwhois selenium
 
-    - name: Install ChromeDriver (latest stable)
+    - name: Install chromium and chromedriver
       run: |
-        wget -N https://chromedriver.storage.googleapis.com/LATEST_RELEASE -O chrome_driver_version
-        CHROMEDRIVER_VERSION=$(cat chrome_driver_version)
-        echo "ChromeDriver latest stable version: $CHROMEDRIVER_VERSION"
-        wget -N https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
-        unzip -o chromedriver_linux64.zip -d /usr/local/bin/
-        chmod +x /usr/local/bin/chromedriver
-        chromedriver --version
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser chromium-chromedriver
 
-    - name: Run the yx_ips script
-      run: |
-        echo "Running the yx_ips script..."
-        python collect_ips.py
-        echo "collect_ips script completed."
+    - name: Run script
+      run: python collect_ips.py
 
-    - name: Check if ip.txt exists and has content
+    - name: Commit results
       run: |
-        echo "Checking if ip.txt exists and has content..."
-        if [ -f "ip.txt" ]; then
-          echo "ip.txt exists. Content:"
-          cat ip.txt
-        else
-          echo "ip.txt does not exist."
-        fi
-
-    - name: Check if ip.txt has changed
-      run: |
-        echo "Checking if ip.txt has changed..."
-        git status
-        git diff ip.txt || echo "No changes detected in ip.txt"
-
-    - name: Commit and push changes
-      run: |
-        echo "Attempting to commit changes..."
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
         git add ip.txt
         git commit -m "Update ip.txt" || echo "No changes to commit"
-        git push origin main
+        git push
