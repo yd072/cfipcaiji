@@ -1,120 +1,93 @@
-import re
-import os
-import csv
+import requests
+from bs4 import BeautifulSoup
 from ipwhois import IPWhois
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import time
+import os
+import re
 
-def fetch_page_source_with_selenium(url, wait=5):
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(options=options)  # 你需先安装chromedriver
-    driver.get(url)
-    time.sleep(wait)  # 等待页面加载完成
-    html = driver.page_source
-    driver.quit()
-    return html
-
-def extract_ip_latency_speed_from_html(html):
-    results = []
-    for line in html.splitlines():
-        if not line.strip() or line.startswith("#") or "优选IP" in line:
-            continue
-        # 尝试用制表符或多个空格分割
-        parts = re.split(r'\t+|\s{2,}', line.strip())
-        if len(parts) < 6:
-            continue
-        ip = parts[2]
-        latency_str = parts[4]
-        speed_str = parts[5]
-        try:
-            latency = float(latency_str.lower().replace("ms", ""))
-            speed = float(speed_str.lower().replace("mb/s", ""))
-        except Exception:
-            continue
-        if re.match(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', ip):
-            results.append((ip, latency, speed))
-    return results
+def extract_ips_and_speeds_from_table(url):
+    """
+    解析网页表格，提取“优选IP”和“速度(mb/s)”
+    """
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            print(f"无法访问 {url}, 状态码: {response.status_code}")
+            return {}
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        results = {}
+        
+        # 假设IP在表格中“优选IP”列，速度在“速度”列
+        # 找表格中的所有行<tr>
+        rows = soup.find_all('tr')
+        
+        for row in rows:
+            cols = row.find_all('td')
+            if len(cols) < 7:
+                continue
+            
+            ip = cols[2].text.strip()  # 第3列“优选IP”
+            speed_str = cols[5].text.strip()  # 第6列“速度”，如“43.85mb/s”
+            
+            # 验证ip格式
+            if not re.match(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', ip):
+                continue
+            
+            # 提取数字部分速度
+            match = re.search(r'([\d.]+)', speed_str.lower())
+            if match:
+                speed = float(match.group(1))
+                results[ip] = speed
+        
+        return results
+    except Exception as e:
+        print(f"解析网页表格时出错: {e}")
+        return {}
 
 def get_country_for_ip(ip, cache):
     if ip in cache:
         return cache[ip]
     try:
-        obj = IPWhois(ip)
-        res = obj.lookup_rdap()
-        country = res.get('asn_country_code', 'Unknown')
+        ipwhois = IPWhois(ip)
+        result = ipwhois.lookup_rdap()
+        country = result.get('asn_country_code', 'Unknown')
         cache[ip] = country
         return country
     except Exception as e:
-        print(f"查询 {ip} 的国家代码失败: {e}")
+        print(f"查询 {ip} 国家码失败: {e}")
         cache[ip] = 'Unknown'
         return 'Unknown'
 
-def save_ip_info_to_csv(ip_info_list, filename='ip_info.csv'):
-    with open(filename, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(['IP', 'Country', 'Latency_ms', 'Speed_Mbps'])
-        for info in ip_info_list:
-            writer.writerow([info['ip'], info['country'], info['latency'], info['speed']])
-    print(f"IP 信息已保存到 {filename}")
+def save_ips_to_file(ips_with_country_speed, filename='ip.txt'):
+    if os.path.exists(filename):
+        os.remove(filename)
+    with open(filename, 'w') as f:
+        for ip, (country, speed) in sorted(ips_with_country_speed.items()):
+            f.write(f"{ip}\t{country}\t{speed:.2f} MB/s\n")
+    print(f"已保存 {len(ips_with_country_speed)} 个符合条件的 IP 到 {filename}")
 
-def filter_fast_ips(csv_file='ip_info.csv', output_file='ip.txt', min_speed=10):
-    filtered_ips = []
-    with open(csv_file, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                speed = float(row['Speed_Mbps'])
-                if speed >= min_speed:
-                    filtered_ips.append(row['IP'])
-            except Exception:
-                continue
-
-    if os.path.exists(output_file):
-        os.remove(output_file)
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for ip in sorted(filtered_ips):
-            f.write(ip + '\n')
-    print(f"筛选速度 >= {min_speed} Mbps 的 IP 共 {len(filtered_ips)} 个，保存到 {output_file}")
-
-def fetch_and_save_ips_with_info_from_web(urls):
-    cache = {}
-    all_info = []
+def fetch_and_save_ips(urls, min_speed=10):
+    all_ips_speeds = {}
     for url in urls:
-        print(f"加载网页 {url} 并提取数据...")
-        html = fetch_page_source_with_selenium(url)
-        infos = extract_ip_latency_speed_from_html(html)
-        if not infos:
-            print(f"从 {url} 未提取到任何数据")
-        all_info.extend(infos)
-
-    if not all_info:
-        print("没有提取到任何 IP 信息，程序结束。")
-        return
-
-    unique_ips = {ip for ip, _, _ in all_info}
-    for ip in unique_ips:
-        if ip not in cache:
-            cache[ip] = get_country_for_ip(ip, cache)
-
-    ip_info_list = []
-    for ip, latency, speed in all_info:
-        country = cache.get(ip, 'Unknown')
-        ip_info_list.append({
-            'ip': ip,
-            'country': country,
-            'latency': latency,
-            'speed': speed
-        })
-
-    save_ip_info_to_csv(ip_info_list)
-    filter_fast_ips()
+        print(f"从 {url} 提取IP和速度...")
+        ips_speeds = extract_ips_and_speeds_from_table(url)
+        all_ips_speeds.update(ips_speeds)
+    
+    print(f"共提取到 {len(all_ips_speeds)} 个IP，筛选速度≥{min_speed} MB/s，开始查询国家码...")
+    cache = {}
+    filtered = {}
+    for ip, speed in all_ips_speeds.items():
+        if speed >= min_speed:
+            country = get_country_for_ip(ip, cache)
+            filtered[ip] = (country, speed)
+            print(f"IP: {ip}, 速度: {speed} MB/s, 国家: {country}")
+    
+    save_ips_to_file(filtered)
 
 if __name__ == "__main__":
     target_urls = [
-        "https://api.uouin.com/cloudflare.html",  # 替换为目标网址
+        "https://api.uouin.com/cloudflare.html",  # 你网页地址
     ]
-    fetch_and_save_ips_with_info_from_web(target_urls)
+    fetch_and_save_ips(target_urls, min_speed=10)
