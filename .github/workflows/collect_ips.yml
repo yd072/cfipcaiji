@@ -1,9 +1,9 @@
 name: collect_ips
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'  # 每 3 小时触发，UTC 时间
+    - cron: '0 3 * * *'
 
 jobs:
   run-and-commit:
@@ -21,7 +21,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests beautifulsoup4 ipwhois
+        pip install requests beautifulsoup4 ipwhois selenium
+
+    - name: Setup ChromeDriver
+      uses: SeleniumHQ/action-chromedriver@v1.0.0
+      with:
+        chromedriver-version: 'latest'
 
     - name: Run the yx_ips script
       run: |
