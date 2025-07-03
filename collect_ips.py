@@ -14,9 +14,9 @@ def extract_ip_speed_and_latency_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 在接收到网页后，等待 6 秒钟
-            print("网页加载完成，等待 6 秒钟再提取数据...")
-            time.sleep(10)  # 等待 6 秒
+            # 在接收到网页后，等待 15 秒钟
+            print("网页加载完成，等待 15 秒钟再提取数据...")
+            time.sleep(15)  # 等待 15 秒
 
             # 假设表格中的字段可以通过正则提取
             ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
