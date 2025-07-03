@@ -1,56 +1,75 @@
-import requests
-import re
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
 import pandas as pd
 
-def extract_ip_speed_and_latency_from_web(url):
+def setup_driver():
     """
-    从指定网页提取 IP 地址、延迟、速度等信息，假设页面内容是表格格式
+    设置并启动 Chrome WebDriver
     """
-    try:
-        # 设置请求头模拟浏览器访问
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        # 检查响应状态
-        if response.status_code == 200:
-            # 假设表格中的字段可以通过正则提取
-            ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
-            latency_pattern = r'(\d+\.\d+)ms'  # 假设延迟格式为 x.xx ms
-            speed_pattern = r'(\d+\.\d+)mb/s'  # 假设速度格式为 x.xx mb/s
-            # 模拟一个表格数据提取
-            ip_list = re.findall(ip_pattern, response.text)
-            latency_list = re.findall(latency_pattern, response.text)
-            speed_list = re.findall(speed_pattern, response.text)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # 无头模式
+    chrome_options.add_argument("--disable-gpu")  # 禁用 GPU，加速加载
 
-            # 假设其他信息字段可以提取，如果表格有类似格式
-            data = []
-            for ip, latency, speed in zip(ip_list, latency_list, speed_list):
-                data.append({
-                    "IP": ip, 
-                    "Latency (ms)": latency,
-                    "Speed (MB/s)": speed,
-                })
-            
-            return data
-        else:
-            print(f"无法访问 {url}, 状态码: {response.status_code}")
-            return []
+    # 下载和启动 WebDriver（GitHub Actions 中使用预安装的 ChromeDriver）
+    driver = webdriver.Chrome(options=chrome_options)
+    
+    return driver
+
+def extract_ip_data_from_web(url):
+    """
+    从网页中提取 IP 地址、延迟和速度
+    """
+    driver = setup_driver()
+    
+    try:
+        # 访问网页
+        driver.get(url)
+
+        # 等待页面中包含 IP 地址元素加载完成
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.XPATH, '//tr/td[1]'))  # 依据 IP 的位置来调整 XPath
+        )
+
+        # 提取表格中的 IP 地址、延迟和速度信息
+        ip_elements = driver.find_elements(By.XPATH, '//tr/td[1]')  # 假设 IP 在第一列
+        latency_elements = driver.find_elements(By.XPATH, '//tr/td[2]')  # 假设延迟在第二列
+        speed_elements = driver.find_elements(By.XPATH, '//tr/td[3]')  # 假设速度在第三列
+
+        # 获取文本内容
+        ips = [ip.text for ip in ip_elements]
+        latencies = [latency.text for latency in latency_elements]
+        speeds = [speed.text for speed in speed_elements]
+
+        # 返回整理好的数据
+        data = []
+        for ip, latency, speed in zip(ips, latencies, speeds):
+            data.append({
+                "IP": ip,
+                "Latency (ms)": latency,
+                "Speed (MB/s)": speed
+            })
+
+        return data
+
     except Exception as e:
-        print(f"抓取网页 {url} 时发生错误: {e}")
+        print(f"发生错误: {e}")
         return []
+    
+    finally:
+        driver.quit()
 
 def save_data_to_csv(data, filename='ip_info.csv'):
     """
-    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件，并去除重复的 IP 地址
+    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
     """
     df = pd.DataFrame(data)
-
-    # 去除重复的 IP 地址
-    df = df.drop_duplicates(subset='IP', keep='first')  # 去重，保留第一次出现的 IP
-    
-    # 保存去重后的数据到 CSV 文件
     df.to_csv(filename, index=False)
-    print(f"数据已保存到 {filename}，且 IP 地址已去重")
+    print(f"数据已保存到 {filename}")
 
 def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
     """
@@ -83,7 +102,7 @@ def fetch_and_process_ips(urls):
     # 提取所有数据
     for url in urls:
         print(f"正在提取 {url} 的数据...")
-        data = extract_ip_speed_and_latency_from_web(url)
+        data = extract_ip_data_from_web(url)
         all_data.extend(data)
 
     # 保存数据到 CSV 文件
@@ -97,8 +116,7 @@ def fetch_and_process_ips(urls):
 if __name__ == "__main__":
     # 要提取数据的目标 URL 列表
     target_urls = [
-        "https://api.uouin.com/cloudflare.html",
-        'https://cf.090227.xyz'# 示例 URL
+        "https://api.uouin.com/cloudflare.html",  # 示例 URL
     ]
     
     # 提取数据并处理
