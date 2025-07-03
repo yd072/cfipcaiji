@@ -1,12 +1,11 @@
 import requests
 import re
-import os
 import pandas as pd
-from ipwhois import IPWhois
 
 def extract_ip_speed_and_latency_from_web(url):
     """
-    从指定网页提取 IP 地址、延迟、速度等信息，假设页面内容是表格格式
+    从指定网页提取 IP 地址、延迟和速度信息
+    假设页面中有 IP、延迟和速度的模式，实际情况可能需要调整
     """
     try:
         # 设置请求头模拟浏览器访问
@@ -15,24 +14,20 @@ def extract_ip_speed_and_latency_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 假设表格中的字段可以通过正则提取
+            # 使用正则表达式提取 IP 地址、延迟、速度（此处根据实际网页结构调整）
             ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
-            latency_pattern = r'(\d+\.\d+)ms'  # 假设延迟格式为 x.xx ms
-            speed_pattern = r'(\d+\.\d+)mb/s'  # 假设速度格式为 x.xx mb/s
-            # 模拟一个表格数据提取
-            ip_list = re.findall(ip_pattern, response.text)
-            latency_list = re.findall(latency_pattern, response.text)
-            speed_list = re.findall(speed_pattern, response.text)
+            latency_pattern = r'Latency:\s*(\d+\.\d+)'  # 假设延迟格式为 Latency: 1.23ms
+            speed_pattern = r'Speed:\s*(\d+\.\d+)\s*MB/s'  # 假设速度格式为 Speed: 12.34MB/s
 
-            # 假设其他信息字段可以提取，如果表格有类似格式
+            ips = re.findall(ip_pattern, response.text)
+            latencies = re.findall(latency_pattern, response.text)
+            speeds = re.findall(speed_pattern, response.text)
+
+            # 确保提取到的列表长度一致
             data = []
-            for ip, latency, speed in zip(ip_list, latency_list, speed_list):
-                data.append({
-                    "IP": ip, 
-                    "Latency (ms)": latency,
-                    "Speed (MB/s)": speed,
-                })
-            
+            for ip, latency, speed in zip(ips, latencies, speeds):
+                data.append({"IP": ip, "Latency (ms)": latency, "Speed (MB/s)": speed})
+
             return data
         else:
             print(f"无法访问 {url}, 状态码: {response.status_code}")
@@ -43,11 +38,15 @@ def extract_ip_speed_and_latency_from_web(url):
 
 def save_data_to_csv(data, filename='ip_info.csv'):
     """
-    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
+    将提取的 IP 地址、延迟和速度信息保存到项目中的 ip_info.csv 文件
     """
-    df = pd.DataFrame(data)
-    df.to_csv(filename, index=False)
-    print(f"数据已保存到 {filename}")
+    if data:
+        df = pd.DataFrame(data)  # 将数据转换为 DataFrame
+        # 将数据保存到项目目录中的 ip_info.csv 文件
+        df.to_csv(f"./{filename}", index=False)  # 这里将文件保存到当前工作目录
+        print(f"数据已保存到 {filename}")
+    else:
+        print("没有数据可以保存到 CSV 文件")
 
 def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
     """
@@ -84,12 +83,10 @@ def fetch_and_process_ips(urls):
         all_data.extend(data)
 
     # 保存数据到 CSV 文件
-    if all_data:
-        save_data_to_csv(all_data)
-        # 筛选并保存符合条件的 IP 地址到 txt 文件
-        filter_ips_by_speed()
-    else:
-        print("没有提取到任何数据，无法保存到 CSV 文件。")
+    save_data_to_csv(all_data)
+
+    # 筛选并保存符合条件的 IP 地址到 txt 文件
+    filter_ips_by_speed()
 
 if __name__ == "__main__":
     # 要提取数据的目标 URL 列表
