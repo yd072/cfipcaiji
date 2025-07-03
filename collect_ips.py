@@ -1,59 +1,61 @@
-import time
+import requests
 import re
-from selenium import webdriver
-from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import os
+from ipwhois import IPWhois
 
-def extract_ips_and_speeds_with_selenium(url):
+def extract_ips_and_speeds_from_web(url):
     """
-    使用 Selenium 和 BeautifulSoup 提取 IP 地址及网速，筛选网速大于或等于 10MB/s 的 IP 地址
+    从指定网页提取所有满足条件的 IP 地址及网速
     """
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')  # 无界面模式
-    driver = webdriver.Chrome(options=options)
-
     try:
-        driver.get(url)
-
-        # 等待页面加载完毕，等待某个元素出现（比如表格的某一行或列）
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'table'))
-        )
-
-        # 获取页面源码并用 BeautifulSoup 解析
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        # 设置请求头模拟浏览器访问
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
         
-        ip_speed_data = []
-        rows = soup.find_all('tr')  # 查找所有行
-
-        for row in rows:
-            cols = row.find_all('td')
-            if len(cols) > 5:  # 确保该行有足够的列数
-                ip = cols[2].text.strip()  # 第 3 列是 优选IP
-                speed = cols[5].text.strip()  # 第 6 列是 速度
+        # 检查响应状态
+        if response.status_code == 200:
+            # 匹配 IP 地址及网速信息
+            pattern = r'(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)[^\d]*(\d+)\s*(Mbps?|Mb/s)'
+            matches = re.findall(pattern, response.text)
+            filtered_ips = []
+            
+            # 过滤出网速大于或等于 10 Mbps 的 IP 地址
+            for match in matches:
+                ip, speed, unit = match
+                speed = int(speed)
                 
-                # 打印每一行的信息用于调试
-                print(f"正在解析：IP = {ip}, 网速 = {speed}")
-                
-                # 使用正则匹配网速格式：例如 '19.68mb/s'
-                match = re.match(r'(\d+\.\d+)mb/s', speed)
-                if match:
-                    speed_value = float(match.group(1))
-                    if speed_value >= 10:  # 筛选网速大于等于 10MB/s 的 IP
-                        ip_speed_data.append((ip, speed_value))
-        
-        return ip_speed_data
+                if speed >= 10:  # 网速大于或等于 10 Mbps
+                    filtered_ips.append(ip)
+            
+            return filtered_ips
+        else:
+            print(f"无法访问 {url}, 状态码: {response.status_code}")
+            return []
     except Exception as e:
-        print(f"抓取网页时发生错误: {e}")
+        print(f"抓取网页 {url} 时发生错误: {e}")
         return []
-    finally:
-        driver.quit()
 
-def save_ips_to_file(ips_with_speed, filename='ip_speed.txt'):
+def get_country_for_ip(ip, cache):
     """
-    将提取的 IP 地址和网速保存到文件
+    查询 IP 的国家简称，使用缓存避免重复查询
+    """
+    if ip in cache:
+        return cache[ip]
+    
+    try:
+        ipwhois = IPWhois(ip)
+        result = ipwhois.lookup_rdap()
+        country = result.get('asn_country_code', 'Unknown')
+        cache[ip] = country
+        return country
+    except Exception as e:
+        print(f"查询 {ip} 的国家代码失败: {e}")
+        cache[ip] = 'Unknown'
+        return 'Unknown'
+
+def save_ips_to_file(ips_with_country, filename='ip.txt'):
+    """
+    将提取的 IP 地址和国家简称保存到文件
     """
     # 删除已有文件，确保文件干净
     if os.path.exists(filename):
@@ -61,26 +63,36 @@ def save_ips_to_file(ips_with_speed, filename='ip_speed.txt'):
     
     # 写入文件
     with open(filename, 'w') as file:
-        for ip, speed in sorted(ips_with_speed, key=lambda x: x[1], reverse=True):  # 按网速降序排序
-            file.write(f"{ip}#{speed}mb/s\n")
+        for ip, country in sorted(ips_with_country.items()):  # 按 IP 排序
+            file.write(f"{ip}#{country}\n")    
     
-    print(f"提取到 {len(ips_with_speed)} 个符合条件的 IP 地址，已保存到 {filename}")
+    print(f"提取到 {len(ips_with_country)} 个 IP 地址，已保存到 {filename}")
 
-def fetch_and_save_ips(url):
+def fetch_and_save_ips(urls):
     """
-    从 URL 提取 IP 地址和网速，筛选网速大于等于 10MB/s 的 IP 地址并保存到文件
+    从多个 URL 提取 IP 地址及其国家简称并保存到文件
     """
-    print(f"正在提取 {url} 的 IP 地址和网速...")
+    all_ips = set()
+    cache = {}  # 缓存查询结果，避免重复查询
+
+    # 提取所有符合条件的 IP 地址
+    for url in urls:
+        print(f"正在提取 {url} 的 IP 地址...")
+        ips = extract_ips_and_speeds_from_web(url)
+        all_ips.update(ips)
     
-    # 获取符合条件的 IP 地址和网速
-    ips_with_speed = extract_ips_and_speeds_with_selenium(url)
-    
+    # 查询国家信息
+    print("正在查询 IP 的国家简称...")
+    ips_with_country = {ip: get_country_for_ip(ip, cache) for ip in all_ips}
+
     # 保存结果到文件
-    save_ips_to_file(ips_with_speed)
+    save_ips_to_file(ips_with_country)
 
 if __name__ == "__main__":
     # 要提取 IP 的目标 URL 列表
-    target_url = "https://api.uouin.com/cloudflare.html"  # 替换成你的实际 URL
+    target_urls = [
+        "https://api.uouin.com/cloudflare.html",  # 示例 URL
+    ]
     
     # 提取 IP 并保存
-    fetch_and_save_ips(target_url)
+    fetch_and_save_ips(target_urls)
