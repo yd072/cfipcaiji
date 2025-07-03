@@ -52,7 +52,7 @@ def extract_ips_and_speed_from_web(url):
 
 def save_ips_to_file(ips_with_country, filename='ip.txt'):
     """
-    将提取的 IP 地址保存到文件
+    将提取的 IP 地址和国家简称保存到文件
     """
     if os.path.exists(filename):  # 确保导入了 os 模块
         os.remove(filename)
