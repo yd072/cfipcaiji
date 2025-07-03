@@ -5,7 +5,7 @@ from ipwhois import IPWhois
 
 def extract_ips_from_web(url):
     """
-    从指定网页提取所有符合条件的 IP 地址（网速 >= 10MB/s）
+    从指定网页提取所有 IP 地址
     """
     try:
         # 设置请求头模拟浏览器访问
@@ -14,14 +14,8 @@ def extract_ips_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 正则表达式匹配每一行的 IP 和网速（假设网速为mb/s并且网速大于等于10mb/s）
-            # 匹配格式：IP 地址在第三列，网速在第五列，例如 "141.101.122.69 19.68mb/s"
-            pattern = re.compile(r'(\d+\.\d+\.\d+\.\d+)\s+\S+\s+\S+\s+\S+\s+(\d+\.\d+)(mb/s)')
-            matches = re.findall(pattern, response.text)
-
-            # 过滤网速大于或等于 10MB/s 的 IP 地址
-            filtered_ips = [ip for ip, speed in matches if float(speed) >= 10]
-            return filtered_ips
+            # 使用正则表达式提取 IP 地址
+            return re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', response.text)
         else:
             print(f"无法访问 {url}, 状态码: {response.status_code}")
             return []
@@ -58,7 +52,7 @@ def save_ips_to_file(ips_with_country, filename='ip.txt'):
     # 写入文件
     with open(filename, 'w') as file:
         for ip, country in sorted(ips_with_country.items()):  # 按 IP 排序
-            file.write(f"{ip}#{country}\n")    
+            file.write(f"{ip}\n")   # {country}
     
     print(f"提取到 {len(ips_with_country)} 个 IP 地址，已保存到 {filename}")
 
@@ -69,7 +63,7 @@ def fetch_and_save_ips(urls):
     all_ips = set()
     cache = {}  # 缓存查询结果，避免重复查询
 
-    # 提取所有符合条件的 IP 地址（网速 >= 10MB/s）
+    # 提取所有 IP 地址
     for url in urls:
         print(f"正在提取 {url} 的 IP 地址...")
         ips = extract_ips_from_web(url)
@@ -86,6 +80,7 @@ if __name__ == "__main__":
     # 要提取 IP 的目标 URL 列表
     target_urls = [
         "https://api.uouin.com/cloudflare.html",  # 示例 URL
+        
     ]
     
     # 提取 IP 并保存
