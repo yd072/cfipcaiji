@@ -70,3 +70,4 @@ jobs:
         else
           git commit -m "Update ip_info.csv and ip.txt"
           git push origin main
+        fi 
