@@ -61,11 +61,11 @@ def main():
     results.sort(key=lambda x: x[1])
     best_15 = results[:15]
 
-    with open("ip.txt", "w") as f:
+    with open("ip_info.txt", "w") as f:
         for ip, latency in best_15:
             f.write(f"{ip} {latency} ms\n")
 
-    print("Top 15 saved to ip.txt")
+    print("Top 15 saved to ip_info.txt")
 
 if __name__ == "__main__":
     main()
