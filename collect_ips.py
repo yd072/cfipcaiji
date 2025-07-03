@@ -43,11 +43,16 @@ def extract_ip_speed_and_latency_from_web(url):
 
 def save_data_to_csv(data, filename='ip_info.csv'):
     """
-    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
+    将提取的 IP 地址、延迟和速度信息保存到项目中的 CSV 文件
     """
+    # 获取当前项目的路径
+    project_path = os.getcwd()  # 当前工作目录
+    file_path = os.path.join(project_path, filename)  # 完整文件路径
+
+    # 保存数据到 CSV 文件
     df = pd.DataFrame(data)
-    df.to_csv(filename, index=False)
-    print(f"数据已保存到 {filename}")
+    df.to_csv(file_path, index=False)
+    print(f"数据已保存到 {file_path}")
 
 def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
     """
