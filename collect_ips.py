@@ -1,52 +1,42 @@
-import requests
 import re
 import os
 from ipwhois import IPWhois
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
-def extract_ips_with_speed_threshold(url, speed_threshold=10):
-    """
-    从网页文本中提取IP和速度，过滤速度>=speed_threshold的IP
-    """
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code != 200:
-            print(f"无法访问 {url}, 状态码: {response.status_code}")
-            return []
-        
-        ips = []
-        lines = response.text.splitlines()
-        for line in lines:
-            # 过滤空行
-            if not line.strip():
-                continue
-            
-            # 按空白字符拆分（空格或tab）
-            cols = re.split(r'\s+', line.strip())
-            if len(cols) < 6:
-                continue
-            
-            ip_candidate = cols[2]
-            speed_str = cols[5].lower()
-            
-            # 验证IP格式
-            if not re.match(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', ip_candidate):
-                continue
-            
-            # 提取速度中的数字
-            m = re.search(r'([\d.]+)', speed_str)
-            if not m:
-                continue
-            speed = float(m.group(1))
-            
-            if speed >= speed_threshold:
-                ips.append(ip_candidate)
-        
-        return ips
-    
-    except Exception as e:
-        print(f"解析网页出错: {e}")
-        return []
+def get_page_source_selenium(url):
+    options = Options()
+    options.add_argument('--headless')  # 无头模式，不打开浏览器窗口
+    options.add_argument('--disable-gpu')
+    options.add_argument('--no-sandbox')
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+    html = driver.page_source
+    driver.quit()
+    return html
+
+def extract_ips_with_speed_threshold_from_html(html, speed_threshold=10):
+    ips = []
+    lines = html.splitlines()
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        # 按空白分割
+        cols = re.split(r'\s+', line)
+        if len(cols) < 6:
+            continue
+        ip_candidate = cols[2]
+        speed_str = cols[5].lower()
+        if not re.match(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', ip_candidate):
+            continue
+        m = re.search(r'([\d.]+)', speed_str)
+        if not m:
+            continue
+        speed = float(m.group(1))
+        if speed >= speed_threshold:
+            ips.append(ip_candidate)
+    return ips
 
 def get_country_for_ip(ip, cache):
     if ip in cache:
@@ -70,11 +60,12 @@ def save_ips_to_file(ips_with_country, filename='ip.txt'):
             f.write(f"{ip}\t{country}\n")
     print(f"已保存 {len(ips_with_country)} 个IP到 {filename}")
 
-def fetch_and_save_ips_with_speed_filter(urls, speed_threshold=10):
+def fetch_and_save_ips(urls, speed_threshold=10):
     all_ips = set()
     for url in urls:
-        print(f"从 {url} 提取速度≥{speed_threshold} 的IP...")
-        ips = extract_ips_with_speed_threshold(url, speed_threshold)
+        print(f"用Selenium打开 {url} 并提取速度≥{speed_threshold} 的IP...")
+        html = get_page_source_selenium(url)
+        ips = extract_ips_with_speed_threshold_from_html(html, speed_threshold)
         all_ips.update(ips)
     print(f"共提取 {len(all_ips)} 个符合条件的IP，开始查询国家码...")
     cache = {}
@@ -85,4 +76,4 @@ if __name__ == "__main__":
     target_urls = [
         "https://api.uouin.com/cloudflare.html",
     ]
-    fetch_and_save_ips_with_speed_filter(target_urls, speed_threshold=10)
+    fetch_and_save_ips(target_urls, speed_threshold=10)
