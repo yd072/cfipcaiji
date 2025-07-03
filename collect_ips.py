@@ -2,12 +2,12 @@ import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-import ipwhois
+from ipwhois import IPWhois
 import os
 
 def get_page_source_selenium(url):
     options = Options()
-    options.binary_location = "/usr/bin/chromium-browser"
+    options.binary_location = "/usr/bin/chromium-browser"  # github runner默认路径
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -20,16 +20,17 @@ def get_page_source_selenium(url):
 def extract_ips_and_speeds(html, speed_threshold=10):
     soup = BeautifulSoup(html, "html.parser")
     ips = {}
-    # 假设网页表格每行包含IP和速度（如示例格式），逐行处理
     for tr in soup.find_all("tr"):
         tds = tr.find_all("td")
-        if len(tds) < 5:
+        if len(tds) < 6:
             continue
         ip = tds[2].text.strip()
-        speed_text = tds[4].text.strip()  # 速度列，形如 "43.85mb/s"
+        speed_text = tds[5].text.strip()  # 第6列，速度，比如 "43.85mb/s"
         match = re.match(r"([\d\.]+)", speed_text)
         if match:
             speed = float(match.group(1))
+            # 打印调试信息
+            print(f"IP: {ip}, Speed text: {speed_text}, Speed: {speed}")
             if speed >= speed_threshold:
                 ips[ip] = speed
     return ips
@@ -38,12 +39,13 @@ def get_country_for_ip(ip, cache):
     if ip in cache:
         return cache[ip]
     try:
-        obj = ipwhois.IPWhois(ip)
+        obj = IPWhois(ip)
         res = obj.lookup_rdap(depth=1)
         country = res.get("asn_country_code", "Unknown")
         cache[ip] = country
         return country
-    except Exception:
+    except Exception as e:
+        print(f"查询 {ip} 国家码失败: {e}")
         cache[ip] = "Unknown"
         return "Unknown"
 
