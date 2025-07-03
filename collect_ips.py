@@ -5,8 +5,8 @@ from ipwhois import IPWhois
 
 def extract_ips_and_speed_from_web(url):
     """
-    从指定网页提取所有 IP 地址及其网速
-    假设网页中 IP 地址和网速信息格式为 "IP 地址 - 网速"
+    从指定网页提取所有 IP 地址及其网速（单位：mb/s）
+    假设网页中 IP 地址和网速信息格式为 "IP 地址 - 网速 mb/s"
     """
     try:
         # 设置请求头模拟浏览器访问
@@ -15,8 +15,8 @@ def extract_ips_and_speed_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
-            # 假设网页中 IP 和网速信息格式为 "IP 地址 - 网速"，并且网速是以Mbps为单位
-            ip_speed_pairs = re.findall(r'(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)\s*-\s*(\d+(\.\d+)?)\s*Mbps', response.text)
+            # 假设网页中 IP 和网速信息格式为 "IP 地址 - 网速 mb/s"
+            ip_speed_pairs = re.findall(r'(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b)\s*-\s*(\d+(\.\d+)?)\s*mb/s', response.text)
             return ip_speed_pairs
         else:
             print(f"无法访问 {url}, 状态码: {response.status_code}")
@@ -69,8 +69,8 @@ def fetch_and_save_ips(urls):
     for url in urls:
         print(f"正在提取 {url} 的 IP 地址和网速...")
         ip_speed_pairs = extract_ips_and_speed_from_web(url)
-        # 只选择网速大于或等于 10 Mbps 的 IP
-        fast_ips = {ip for ip, speed in ip_speed_pairs if float(speed) >= 10}
+        # 只选择网速大于或等于 10 Mbps（即 1.25 mb/s）的 IP
+        fast_ips = {ip for ip, speed in ip_speed_pairs if float(speed) * 8 >= 10}
         all_ips.update(fast_ips)
     
     # 查询国家信息
