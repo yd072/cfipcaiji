@@ -14,10 +14,15 @@ def extract_ips_and_speeds_from_web(url):
         
         # 检查响应状态
         if response.status_code == 200:
+            print("网页加载成功，开始解析内容...")
+            # 打印网页内容前几行以检查是否包含预期的数据
+            print(response.text[:1000])  # 打印前 1000 个字符，或者保存到文件进行检查
+
             # 使用正则表达式提取每行的 IP 地址和网速
             ip_speed_data = []
             lines = response.text.splitlines()
             for line in lines:
+                print(f"正在解析：{line}")  # 打印每一行内容，检查是否符合预期
                 # 正则匹配 IP 地址和网速信息
                 match = re.search(r'(\d+\.\d+\.\d+\.\d+)\s+\d+\.\d+ms\s+(\d+\.\d+)mb/s', line)
                 if match:
