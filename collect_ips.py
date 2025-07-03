@@ -88,6 +88,6 @@ def fetch_and_save_ips(urls, min_speed=10):
 
 if __name__ == "__main__":
     target_urls = [
-        "https://api.uouin.com/cloudflare.html",  # 你网页地址
+        "https://cf.090227.xyz",  # 你网页地址
     ]
     fetch_and_save_ips(target_urls, min_speed=10)
