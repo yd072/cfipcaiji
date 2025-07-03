@@ -1,9 +1,12 @@
+import os  # 导入 os 模块
+import requests
+import re
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-import time
-import re
+import tempfile
 
 def extract_ips_and_speed_from_web(url):
     """
@@ -11,8 +14,15 @@ def extract_ips_and_speed_from_web(url):
     只提取网速大于等于 10mb/s 的 IP。
     """
     try:
-        # 设置 Chrome 驱动
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+        # 创建临时目录作为 Chrome 的用户数据目录
+        user_data_dir = tempfile.mkdtemp()
+
+        # 设置 Chrome 驱动和无头模式
+        options = Options()
+        options.headless = True  # 设置无头模式
+        options.add_argument(f"--user-data-dir={user_data_dir}")  # 使用临时目录作为用户数据目录
+
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
         # 打开目标网页
         driver.get(url)
@@ -44,11 +54,9 @@ def save_ips_to_file(ips_with_country, filename='ip.txt'):
     """
     将提取的 IP 地址和国家简称保存到文件
     """
-    # 删除已有文件，确保文件干净
-    if os.path.exists(filename):
+    if os.path.exists(filename):  # 确保导入了 os 模块
         os.remove(filename)
-    
-    # 写入文件
+
     with open(filename, 'w') as file:
         for ip in sorted(ips_with_country):  # 按 IP 排序
             file.write(f"{ip}\n")
