@@ -8,16 +8,16 @@ def extract_ip_speed_and_latency_from_web(url):
     从指定网页提取 IP 地址、延迟、速度等信息，假设页面内容是表格格式
     """
     try:
-        # 先等待 5 秒再发送请求
-        print("等待 5 秒以模拟请求延迟...")
-        time.sleep(5)
-        
         # 设置请求头模拟浏览器访问
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
         
         # 检查响应状态
         if response.status_code == 200:
+            # 在接收到网页后，等待 6 秒钟
+            print("网页加载完成，等待 6 秒钟再提取数据...")
+            time.sleep(6)  # 等待 6 秒
+
             # 假设表格中的字段可以通过正则提取
             ip_pattern = r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b'
             latency_pattern = r'(\d+\.\d+)ms'  # 假设延迟格式为 x.xx ms
