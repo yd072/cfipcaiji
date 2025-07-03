@@ -1,97 +1,87 @@
 import requests
-from bs4 import BeautifulSoup
 import re
-from ipwhois import IPWhois
 import os
-import ipaddress
+from ipwhois import IPWhois
 
-def extract_ips_and_speeds(url, speed_threshold=10):
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers, timeout=10)
-    if response.status_code != 200:
-        print(f"无法访问 {url}，状态码: {response.status_code}")
-        return {}
-
-    soup = BeautifulSoup(response.text, "html.parser")
-    tbody = soup.find("tbody")
-    if not tbody:
-        print("页面结构异常，找不到<tbody>标签")
-        return {}
-
-    results = {}
-
-    for tr in tbody.find_all("tr"):
-        tds = tr.find_all("td")
-        if len(tds) < 6:
-            continue
-
-        # 提取所有列文本，方便调试
-        cols = [td.get_text(strip=True) for td in tds]
-        # print(cols)  # 取消注释可调试查看列内容
-
-        ip = cols[2]
-        loss = cols[3]
-        speed_text = cols[5]
-
-        # 验证IP格式，过滤异常数据
-        try:
-            ipaddress.ip_address(ip)
-        except ValueError:
-            # print(f"跳过非法IP: {ip}")
-            continue
-
-        # 从速度列提取数字部分，忽略单位
-        speed_match = re.match(r"([\d\.]+)", speed_text)
-        if not speed_match:
-            continue
-        speed = float(speed_match.group(1))
-
-        if speed >= speed_threshold:
-            results[ip] = {
-                "loss": loss,
-                "speed": speed,
-            }
-
-    return results
+def extract_ips_from_web(url):
+    """
+    从指定网页提取所有 IP 地址
+    """
+    try:
+        # 设置请求头模拟浏览器访问
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        # 检查响应状态
+        if response.status_code == 200:
+            # 使用正则表达式提取 IP 地址
+            return re.findall(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b', response.text)
+        else:
+            print(f"无法访问 {url}, 状态码: {response.status_code}")
+            return []
+    except Exception as e:
+        print(f"抓取网页 {url} 时发生错误: {e}")
+        return []
 
 def get_country_for_ip(ip, cache):
+    """
+    查询 IP 的国家简称，使用缓存避免重复查询
+    """
     if ip in cache:
         return cache[ip]
+    
     try:
-        obj = IPWhois(ip)
-        res = obj.lookup_rdap(depth=1)
-        country = res.get("asn_country_code", "Unknown")
+        ipwhois = IPWhois(ip)
+        result = ipwhois.lookup_rdap()
+        country = result.get('asn_country_code', 'Unknown')
+        cache[ip] = country
+        return country
     except Exception as e:
-        # print(f"查询 {ip} 国家失败: {e}")
-        country = "Unknown"
-    cache[ip] = country
-    return country
+        print(f"查询 {ip} 的国家代码失败: {e}")
+        cache[ip] = 'Unknown'
+        return 'Unknown'
 
-def save_results(results, filename="ip.txt"):
+def save_ips_to_file(ips_with_country, filename='ip.txt'):
+    """
+    将提取的 IP 地址和国家简称保存到文件
+    """
+    # 删除已有文件，确保文件干净
     if os.path.exists(filename):
         os.remove(filename)
+    
+    # 写入文件
+    with open(filename, 'w') as file:
+        for ip, country in sorted(ips_with_country.items()):  # 按 IP 排序
+            file.write(f"{ip}\n")   # {country}
+    
+    print(f"提取到 {len(ips_with_country)} 个 IP 地址，已保存到 {filename}")
 
-    with open(filename, "w", encoding="utf-8") as f:
-        for ip, info in sorted(results.items()):
-            country = info.get("country", "Unknown")
-            f.write(f"{ip}\t丢包率: {info['loss']}\t速度: {info['speed']} mb/s\t国家: {country}\n")
+def fetch_and_save_ips(urls):
+    """
+    从多个 URL 提取 IP 地址及其国家简称并保存到文件
+    """
+    all_ips = set()
+    cache = {}  # 缓存查询结果，避免重复查询
 
-    print(f"已保存 {len(results)} 条符合条件的IP到 {filename}")
+    # 提取所有 IP 地址
+    for url in urls:
+        print(f"正在提取 {url} 的 IP 地址...")
+        ips = extract_ips_from_web(url)
+        all_ips.update(ips)
+    
+    # 查询国家信息
+    print("正在查询 IP 的国家简称...")
+    ips_with_country = {ip: get_country_for_ip(ip, cache) for ip in all_ips}
 
-def main():
-    url = "https://api.uouin.com/cloudflare.html"
-    speed_threshold = 10
-
-    print(f"从 {url} 提取速度≥{speed_threshold} mb/s 的IP...")
-
-    results = extract_ips_and_speeds(url, speed_threshold)
-    print(f"共提取到 {len(results)} 个符合条件的IP，开始查询国家码...")
-
-    cache = {}
-    for ip in results:
-        results[ip]["country"] = get_country_for_ip(ip, cache)
-
-    save_results(results)
+    # 保存结果到文件
+    save_ips_to_file(ips_with_country)
 
 if __name__ == "__main__":
-    main()
+    # 要提取 IP 的目标 URL 列表
+    target_urls = [
+        "https://api.uouin.com/cloudflare.html",  # 示例 URL
+        
+    ]
+    
+    # 提取 IP 并保存
+    fetch_and_save_ips(target_urls)
