@@ -97,8 +97,7 @@ def fetch_and_process_ips(urls):
 if __name__ == "__main__":
     # 要提取数据的目标 URL 列表
     target_urls = [
-        "https://api.uouin.com/cloudflare.html",
-        "https://ip.164746.xyz" # 示例 URL
+        "https://api.uouin.com/cloudflare.html" # 示例 URL
     ]
     
     # 提取数据并处理
