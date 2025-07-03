@@ -23,18 +23,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4 ipwhois selenium
 
-    - name: Install ChromeDriver
+    - name: Get Google Chrome version
       run: |
-        CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+        GOOGLE_CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+        echo "Current Chrome version: $GOOGLE_CHROME_VERSION"
+        echo "GOOGLE_CHROME_VERSION=$GOOGLE_CHROME_VERSION" >> $GITHUB_ENV
+
+    - name: Install compatible ChromeDriver
+      run: |
+        CHROMEDRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${GOOGLE_CHROME_VERSION})
         wget https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip
         unzip chromedriver_linux64.zip
         mv chromedriver /usr/local/bin/
-
-    - name: Install Google Chrome
-      run: |
-        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome-stable_current_amd64.deb
-        sudo apt --fix-broken install -y
 
     - name: Run the yx_ips script
       run: |
