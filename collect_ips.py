@@ -52,7 +52,7 @@ def save_ips_to_file(ips_with_country, filename='ip.txt'):
     # 写入文件
     with open(filename, 'w') as file:
         for ip, country in sorted(ips_with_country.items()):  # 按 IP 排序
-            file.write(f"{ip}\n")
+            file.write(f"{ip}\n")   # {country}
     
     print(f"提取到 {len(ips_with_country)} 个 IP 地址，已保存到 {filename}")
 
