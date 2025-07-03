@@ -3,9 +3,9 @@ import re
 import os
 from ipwhois import IPWhois
 
-def extract_ips_by_speed(url, speed_threshold=10):
+def extract_ips_and_speeds(url):
     """
-    从网页提取IP和速度数字，速度≥阈值的IP被提取（忽略单位）
+    从网页文本提取 IP 和速度（mb/s），筛选速度≥10
     """
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -14,22 +14,24 @@ def extract_ips_by_speed(url, speed_threshold=10):
             print(f"无法访问 {url}, 状态码: {response.status_code}")
             return {}
         
-        ips_with_speed = {}
-        lines = response.text.splitlines()
-        for line in lines:
-            # 匹配IP + 速度数字（忽略单位，数字可能是整数或浮点）
-            match = re.search(r'(\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b).*?([\d.]+)', line)
-            if match:
-                ip = match.group(1)
-                try:
-                    speed = float(match.group(2))
-                except ValueError:
-                    continue
-                if speed >= speed_threshold:
-                    ips_with_speed[ip] = speed
-        return ips_with_speed
+        text = response.text
+        
+        # 正则解析：序号 电信 IP 丢包 延迟 速度 单位 带宽 查询 时间
+        # 重点抓IP和速度，速度数字部分
+        pattern = re.compile(
+            r'\d+\s+\S+\s+(\b(?:\d{1,3}\.){3}\d{1,3}\b)\s+\S+\s+\S+\s+([\d.]+)mb/s',
+            re.IGNORECASE
+        )
+        
+        results = {}
+        for ip, speed_str in pattern.findall(text):
+            speed = float(speed_str)
+            if speed >= 10:
+                results[ip] = speed
+        return results
+
     except Exception as e:
-        print(f"解析网页时出错: {e}")
+        print(f"提取IP和速度失败: {e}")
         return {}
 
 def get_country_for_ip(ip, cache):
@@ -51,23 +53,28 @@ def save_ips_to_file(ips_with_country_speed, filename='ip.txt'):
         os.remove(filename)
     with open(filename, 'w') as f:
         for ip, (country, speed) in sorted(ips_with_country_speed.items()):
-            f.write(f"{ip}\t{country}\t{speed}\n")
-    print(f"已保存 {len(ips_with_country_speed)} 个符合条件的 IP 到 {filename}")
+            f.write(f"{ip}\t{country}\t{speed:.2f} MB/s\n")
+    print(f"已保存 {len(ips_with_country_speed)} 个符合条件的IP到 {filename}")
 
-def fetch_and_save_ips(url, speed_threshold=10):
-    print(f"从 {url} 提取速度≥{speed_threshold} 的IP（忽略单位）...")
-    ips_with_speed = extract_ips_by_speed(url, speed_threshold)
-    print(f"提取到 {len(ips_with_speed)} 个 IP。查询国家码...")
+def fetch_and_save_ips(urls):
+    all_ips_speeds = {}
+    for url in urls:
+        print(f"从 {url} 提取IP和速度...")
+        ips_speeds = extract_ips_and_speeds(url)
+        all_ips_speeds.update(ips_speeds)
     
+    print(f"共提取到 {len(all_ips_speeds)} 个符合条件的IP，开始查询国家码...")
     cache = {}
-    ips_with_country_speed = {}
-    for ip, speed in ips_with_speed.items():
+    filtered = {}
+    for ip, speed in all_ips_speeds.items():
         country = get_country_for_ip(ip, cache)
-        ips_with_country_speed[ip] = (country, speed)
-        print(f"IP: {ip}，速度: {speed}，国家: {country}")
+        filtered[ip] = (country, speed)
+        print(f"IP: {ip}, 速度: {speed} MB/s, 国家: {country}")
     
-    save_ips_to_file(ips_with_country_speed)
+    save_ips_to_file(filtered)
 
 if __name__ == "__main__":
-    url = "https://api.uouin.com/cloudflare.html"
-    fetch_and_save_ips(url, speed_threshold=10)
+    target_urls = [
+        "https://api.uouin.com/cloudflare.html",
+    ]
+    fetch_and_save_ips(target_urls)
