@@ -34,7 +34,7 @@ jobs:
         
         # 安装适配 Chrome 版本的 ChromeDriver
         CHROME_VERSION=$(google-chrome-stable --version | awk '{print $3}' | sed 's/\.[0-9]*$//')  # 获取 Chrome 主版本
-        DRIVER_VERSION=$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
+        DRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
         
         # 下载和安装对应版本的 ChromeDriver
         wget https://chromedriver.storage.googleapis.com/$DRIVER_VERSION/chromedriver_linux64.zip
