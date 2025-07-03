@@ -1,8 +1,6 @@
 import requests
 import re
-import os
 import pandas as pd
-from ipwhois import IPWhois
 
 def extract_ip_speed_and_latency_from_web(url):
     """
@@ -43,12 +41,16 @@ def extract_ip_speed_and_latency_from_web(url):
 
 def save_data_to_csv(data, filename='ip_info.csv'):
     """
-    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件
+    将提取的 IP 地址、延迟和速度信息保存到 CSV 文件，并去除重复的 IP 地址
     """
     df = pd.DataFrame(data)
-    # 将数据保存到项目中的 `ip_info.csv`
+
+    # 去除重复的 IP 地址
+    df = df.drop_duplicates(subset='IP', keep='first')  # 去重，保留第一次出现的 IP
+    
+    # 保存去重后的数据到 CSV 文件
     df.to_csv(filename, index=False)
-    print(f"数据已保存到 {filename}")
+    print(f"数据已保存到 {filename}，且 IP 地址已去重")
 
 def filter_ips_by_speed(input_file='ip_info.csv', output_file='ip.txt', speed_threshold=10):
     """
