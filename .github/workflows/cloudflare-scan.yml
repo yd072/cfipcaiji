@@ -32,10 +32,10 @@ jobs:
         chmod +x scripts/scan_ips.sh
         ./scripts/scan_ips.sh result/asia_ips.txt > result/scan_result.csv
 
-    - name: Filter top 15 IPs with <100ms
+    - name: Filter top 15 IPs with <200ms
       run: |
         mkdir -p output
-        awk -F',' '$2 != "timeout" && $2+0 < 100 && $3=="ok" {print $1}' result/scan_result.csv | head -n 15 > output/ip_info.txt
+        awk -F',' '$2 != "timeout" && $2+0 < 200 && $3=="ok" {print $1}' result/scan_result.csv | head -n 15 > output/ip_info.txt
         cat output/ip_info.txt
 
     - name: Upload scan result CSV
