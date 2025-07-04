@@ -1,0 +1,39 @@
+name: Cloudflare Asia IP Scan
+
+on:
+  workflow_dispatch:  # 可手动触发
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y curl iputils-ping python3
+
+    - name: Download Cloudflare IP list
+      run: |
+        curl -s https://www.cloudflare.com/ips-v4 -o cf_ipv4.txt
+
+    - name: Generate Asia IPs (filtered)
+      run: |
+        mkdir result
+        python3 scripts/gen_asia_ips.py cf_ipv4.txt > asia_ips.txt
+        echo "Filtered IP count:"
+        wc -l asia_ips.txt
+
+    - name: Scan and test Asia IPs
+      run: |
+        chmod +x scripts/scan_ips.sh
+        ./scripts/scan_ips.sh asia_ips.txt > result/scan_result.csv
+
+    - name: Upload result
+      uses: actions/upload-artifact@v3
+      with:
+        name: Asia-IP-Scan
+        path: result/scan_result.csv
