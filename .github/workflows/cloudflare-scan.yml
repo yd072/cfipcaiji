@@ -1,7 +1,7 @@
 name: Cloudflare Asia IP Scan
 
 on:
-  workflow_dispatch:  # 可手动触发
+  workflow_dispatch:  # 可手动触发运行
 
 jobs:
   scan:
@@ -22,18 +22,30 @@ jobs:
 
     - name: Generate Asia IPs (filtered)
       run: |
-        mkdir result
-        python3 scripts/gen_asia_ips.py cf_ipv4.txt > asia_ips.txt
+        mkdir -p result
+        python3 scripts/gen_asia_ips.py cf_ipv4.txt > result/asia_ips.txt
         echo "Filtered IP count:"
-        wc -l asia_ips.txt
+        wc -l result/asia_ips.txt
 
     - name: Scan and test Asia IPs
       run: |
         chmod +x scripts/scan_ips.sh
-        ./scripts/scan_ips.sh asia_ips.txt > result/scan_result.csv
+        ./scripts/scan_ips.sh result/asia_ips.txt > result/scan_result.csv
 
-    - name: Upload result
-      uses: actions/upload-artifact@v3
+    - name: Filter top 15 IPs with <50ms
+      run: |
+        mkdir -p output
+        awk -F',' '$2 != "timeout" && $2+0 < 50 && $3=="ok" {print $1}' result/scan_result.csv | head -n 15 > output/ip_info.txt
+        cat output/ip_info.txt
+
+    - name: Upload scan result CSV
+      uses: actions/upload-artifact@v4
       with:
         name: Asia-IP-Scan
         path: result/scan_result.csv
+
+    - name: Upload filtered IPs
+      uses: actions/upload-artifact@v4
+      with:
+        name: LowLatencyIPs
+        path: output/ip_info.txt
