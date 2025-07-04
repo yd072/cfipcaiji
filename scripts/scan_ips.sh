@@ -5,6 +5,9 @@ echo "IP,Latency(ms),CdnTraceStatus"
 count=0
 max=15
 
+mkdir -p output
+> output/ip_info.txt
+
 while read ip; do
   if [[ $count -ge $max ]]; then
     break
@@ -20,6 +23,7 @@ while read ip; do
   if [[ "$trace" == "off" || "$trace" == "on" ]]; then
     echo "$ip,$ping_out,ok"
     if [[ "$ping_out" != "timeout" && $(echo "$ping_out < 100" | bc) -eq 1 ]]; then
+      echo "$ip" >> output/ip_info.txt
       count=$((count+1))
     fi
   else
