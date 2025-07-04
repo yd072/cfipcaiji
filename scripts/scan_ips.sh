@@ -2,7 +2,14 @@
 
 echo "IP,Latency(ms),CdnTraceStatus"
 
+count=0
+max=15
+
 while read ip; do
+  if [[ $count -ge $max ]]; then
+    break
+  fi
+
   ping_out=$(ping -c 3 -W 1 $ip | grep 'avg' | awk -F '/' '{print $5}')
   if [[ -z "$ping_out" ]]; then
     ping_out="timeout"
@@ -12,6 +19,9 @@ while read ip; do
 
   if [[ "$trace" == "off" || "$trace" == "on" ]]; then
     echo "$ip,$ping_out,ok"
+    if [[ "$ping_out" != "timeout" && $(echo "$ping_out < 100" | bc) -eq 1 ]]; then
+      count=$((count+1))
+    fi
   else
     echo "$ip,$ping_out,fail"
   fi
