@@ -1,7 +1,7 @@
 name: Cloudflare Asia IP Scan
 
 on:
-  workflow_dispatch:  # 可手动触发运行
+  workflow_dispatch:
 
 jobs:
   scan:
@@ -14,38 +14,28 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y curl iputils-ping python3
+        sudo apt install -y curl iputils-ping python3 bc
 
     - name: Download Cloudflare IP list
-      run: |
-        curl -s https://www.cloudflare.com/ips-v4 -o cf_ipv4.txt
+      run: curl -s https://www.cloudflare.com/ips-v4 -o cf_ipv4.txt
 
-    - name: Generate Asia IPs (filtered)
+    - name: Generate 1000 Asia IPs
       run: |
-        mkdir -p result
+        mkdir -p result output
         python3 scripts/gen_asia_ips.py cf_ipv4.txt > result/asia_ips.txt
-        echo "Filtered IP count:"
+        echo "Sampled IP count:"
         wc -l result/asia_ips.txt
 
-    - name: Scan and test Asia IPs
+    - name: Scan and stop at 15 good IPs
       run: |
         chmod +x scripts/scan_ips.sh
         ./scripts/scan_ips.sh result/asia_ips.txt > result/scan_result.csv
-
-    - name: Filter top 15 IPs with <200ms
-      run: |
-        mkdir -p output
-        awk -F',' '$2 != "timeout" && $2+0 < 200 && $3=="ok" {print $1}' result/scan_result.csv | head -n 15 > output/ip_info.txt
         cat output/ip_info.txt
 
-    - name: Upload scan result CSV
+    - name: Upload results
       uses: actions/upload-artifact@v4
       with:
-        name: Asia-IP-Scan
-        path: result/scan_result.csv
-
-    - name: Upload filtered IPs
-      uses: actions/upload-artifact@v4
-      with:
-        name: LowLatencyIPs
-        path: output/ip_info.txt
+        name: scan-result
+        path: |
+          result/scan_result.csv
+          output/ip_info.txt
