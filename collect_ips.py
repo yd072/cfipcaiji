@@ -79,7 +79,7 @@ def fetch_and_save_ips(urls):
 if __name__ == "__main__":
     # 要提取 IP 的目标 URL 列表
     target_urls = [
-        "https://api.uouin.com/cloudflare.html",  # 示例 URL
+        "https://raw.githubusercontent.com/yd072/v2ray-configs/refs/heads/main/All_Configs_Sub.txt",  # 示例 URL
         
     ]
     
