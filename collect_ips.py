@@ -79,7 +79,7 @@ def fetch_and_save_ips(urls):
 if __name__ == "__main__":
     # 要提取 IP 的目标 URL 列表
     target_urls = [
-        "https://raw.githubusercontent.com/nyeinkokoaung404/V2ray-Configs/main/Splitted-By-Protocol/vless.txt",  # 示例 URL
+        "https://subvless.trevely.us.kg/Trevely?sb",  # 示例 URL
         
     ]
     
